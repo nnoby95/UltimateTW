@@ -154,17 +154,8 @@
                 }
             };
             
-            // Try to inject button multiple times with different strategies
+            // Only inject the menu bar button
             injectAutoBuilderButton();
-            
-            // Fallback: create floating button after 3 seconds if no button found
-            setTimeout(() => {
-                if (!document.getElementById('autobuilder-toggle-btn')) {
-                    console.log('🔄 Creating fallback floating button...');
-                    createFloatingButton();
-                }
-            }, 3000);
-            
         } catch (error) {
             console.error('❌ AutoBuilder initialization failed:', error);
         }
@@ -222,62 +213,12 @@
         loadingTd.parentNode.insertBefore(autobuilderTd, loadingTd);
         console.log('✅ AutoBuilder menu button inserted before loading bar');
     }
-
-    function createFloatingButton() {
-        // Check if floating button already exists
-        if (document.getElementById('autobuilder-floating-btn')) {
-            return;
-        }
-
-        console.log('🎈 Creating floating AutoBuilder button...');
-
-        const floatingBtn = document.createElement('button');
-        floatingBtn.id = 'autobuilder-floating-btn';
-        floatingBtn.innerHTML = '🏗️';
-        floatingBtn.title = 'AutoBuilder Settings';
-        floatingBtn.style.position = 'fixed';
-        floatingBtn.style.top = '10px';
-        floatingBtn.style.right = '10px';
-        floatingBtn.style.width = '50px';
-        floatingBtn.style.height = '50px';
-        floatingBtn.style.background = '#4a90e2';
-        floatingBtn.style.color = 'white';
-        floatingBtn.style.border = 'none';
-        floatingBtn.style.borderRadius = '50%';
-        floatingBtn.style.cursor = 'pointer';
-        floatingBtn.style.fontSize = '20px';
-        floatingBtn.style.zIndex = '10000';
-        floatingBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
-        floatingBtn.style.fontWeight = 'bold';
-        
-        floatingBtn.onmouseover = () => {
-            floatingBtn.style.background = '#357abd';
-            floatingBtn.style.transform = 'scale(1.1)';
-        };
-        
-        floatingBtn.onmouseout = () => {
-            floatingBtn.style.background = '#4a90e2';
-            floatingBtn.style.transform = 'scale(1)';
-        };
-        
-        floatingBtn.onclick = () => {
-            try {
-                console.log('🔘 Floating AutoBuilder button clicked');
-                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
-                    window.AutoBuilder.getUI().settings.show();
-                    console.log('✅ Settings panel should be visible now');
-                } else {
-                    console.error('❌ AutoBuilder UI not available');
-                    alert('AutoBuilder UI not available! Please refresh the page.');
-                }
-            } catch (e) {
-                console.error('❌ AutoBuilder UI failed to open:', e);
-                alert('AutoBuilder UI failed to open! Error: ' + e.message);
-            }
-        };
-
-        document.body.appendChild(floatingBtn);
-        console.log('🎉 Floating AutoBuilder button created successfully!');
-    }
     
 })(); 
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('autobuilder-close')) {
+        const panel = e.target.closest('.autobuilder-panel');
+        if (panel) panel.style.display = 'none';
+    }
+}); 
