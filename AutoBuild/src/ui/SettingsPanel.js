@@ -809,10 +809,19 @@ class SettingsPanel {
                 html += `<div style="color:#b00;font-size:13px;margin-bottom:8px;">No villages found. Please click 'Refresh Villages' or visit your villages in-game.</div>`;
             } else {
                 html += `<table class="vis" style="width:100%;font-size:13px;">
-                    <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
+                    <tr><th>Village</th><th>Template</th><th>Status</th><th>Resources / Population</th></tr>`;
                 villageEntries.forEach(([villageId, v]) => {
                     const name = v.info?.name || villageId;
                     const currentTemplate = vt[villageId] || '';
+                    // Resource and population display
+                    let resHtml = '';
+                    const res = v.resources || {};
+                    const pop = res.pop !== undefined ? res.pop : '-';
+                    const popMax = res.pop_max !== undefined ? res.pop_max : '-';
+                    resHtml += `<span class='icon header wood' style='vertical-align:middle;'></span> <span>${res.wood !== undefined ? res.wood : '-'}</span> `;
+                    resHtml += `<span class='icon header stone' style='vertical-align:middle;'></span> <span>${res.stone !== undefined ? res.stone : '-'}</span> `;
+                    resHtml += `<span class='icon header iron' style='vertical-align:middle;'></span> <span>${res.iron !== undefined ? res.iron : '-'}</span> &nbsp;`;
+                    resHtml += `<span class='icon header population' style='vertical-align:middle;'></span> <span>${pop}/${popMax}</span>`;
                     html += `<tr>
                         <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
                         <td>
@@ -824,6 +833,7 @@ class SettingsPanel {
                     html += `</select>
                         </td>
                         <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
+                        <td>${resHtml}</td>
                     </tr>`;
                 });
                 html += `</table>`;
