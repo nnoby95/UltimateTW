@@ -138,7 +138,32 @@
             // Global instance
             window.AutoBuilder = new AutoBuilder();
             window.AutoBuilder.init();
+            
+            // Add global test function for debugging
+            window.testAutoBuilder = function() {
+                console.log('🧪 Testing AutoBuilder...');
+                console.log('AutoBuilder object:', window.AutoBuilder);
+                console.log('AutoBuilder UI:', window.AutoBuilder ? window.AutoBuilder.getUI() : 'Not available');
+                console.log('Settings:', window.AutoBuilder ? window.AutoBuilder.getSettings() : 'Not available');
+                
+                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
+                    console.log('✅ AutoBuilder UI is available, testing show()...');
+                    window.AutoBuilder.getUI().settings.show();
+                } else {
+                    console.error('❌ AutoBuilder UI not available');
+                }
+            };
+            
+            // Try to inject button multiple times with different strategies
             injectAutoBuilderButton();
+            
+            // Fallback: create floating button after 3 seconds if no button found
+            setTimeout(() => {
+                if (!document.getElementById('autobuilder-toggle-btn')) {
+                    console.log('🔄 Creating fallback floating button...');
+                    createFloatingButton();
+                }
+            }, 3000);
             
         } catch (error) {
             console.error('❌ AutoBuilder initialization failed:', error);
@@ -146,23 +171,49 @@
     }
 
     function injectAutoBuilderButton() {
-        // Try to find the quest button
-        let questBtn = document.querySelector('#questlog') || document.querySelector('.questlog') || document.querySelector('[id^="quest"]');
-        if (!questBtn) {
-            // Try again after a short delay if not found
-            setTimeout(injectAutoBuilderButton, 1000);
-            return;
+        // Try to find the Settings button in the top bar
+        let settingsBtn = Array.from(document.querySelectorAll('a, button')).find(
+            el => el.textContent.trim() === 'Settings' || el.title === 'Settings'
+        );
+
+        // Fallback to previous logic if not found
+        let questBtn = null;
+        if (!settingsBtn) {
+            questBtn = document.querySelector('#new_quest.quest') ||
+                       document.querySelector('#questlog') || 
+                       document.querySelector('.questlog') || 
+                       document.querySelector('[id^="quest"]') ||
+                       document.querySelector('#new_quest') ||
+                       document.querySelector('.quest');
+        }
+        
+        // If neither found, try to find a suitable location in the navigation area
+        if (!settingsBtn && !questBtn) {
+            questBtn = document.querySelector('.navigation') || 
+                       document.querySelector('.menu') ||
+                       document.querySelector('.header') ||
+                       document.querySelector('.topbar');
+            if (!questBtn) {
+                console.log('🔍 Settings/Quest button not found, retrying in 1 second...');
+                setTimeout(injectAutoBuilderButton, 1000);
+                return;
+            }
         }
 
         // Check if button already exists
-        if (document.getElementById('autobuilder-toggle-btn')) return;
+        if (document.getElementById('autobuilder-toggle-btn')) {
+            console.log('✅ AutoBuilder button already exists');
+            return;
+        }
+
+        console.log('🔧 Creating AutoBuilder button...');
 
         // Create the button
         const btn = document.createElement('button');
         btn.id = 'autobuilder-toggle-btn';
         btn.innerHTML = '🏗️ AutoBuilder';
-        btn.style.display = 'block';
-        btn.style.margin = '8px auto 0 auto';
+        btn.style.display = 'inline-block';
+        btn.style.margin = '0 0 0 8px';
         btn.style.width = '120px';
         btn.style.background = '#e6c590';
         btn.style.border = '2px solid #b08d57';
@@ -173,18 +224,98 @@
         btn.style.cursor = 'pointer';
         btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
         btn.style.zIndex = 10001;
+        btn.style.position = 'relative';
         btn.onmouseover = () => btn.style.background = '#f5e1b8';
         btn.onmouseout = () => btn.style.background = '#e6c590';
         btn.onclick = () => {
             try {
-                window.AutoBuilder.getUI().settings.show();
+                console.log('🔘 AutoBuilder button clicked');
+                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
+                    window.AutoBuilder.getUI().settings.show();
+                    console.log('✅ Settings panel should be visible now');
+                } else {
+                    console.error('❌ AutoBuilder UI not available');
+                    alert('AutoBuilder UI not available! Please refresh the page.');
+                }
             } catch (e) {
-                alert('AutoBuilder UI failed to open!');
+                console.error('❌ AutoBuilder UI failed to open:', e);
+                alert('AutoBuilder UI failed to open! Error: ' + e.message);
             }
         };
 
-        // Insert after quest button
-        questBtn.parentNode.insertBefore(btn, questBtn.nextSibling);
+        // Insert the button after the Settings button if found
+        if (settingsBtn && settingsBtn.parentNode) {
+            settingsBtn.parentNode.insertBefore(btn, settingsBtn.nextSibling);
+            console.log('✅ AutoBuilder button inserted after Settings button');
+        } else if (questBtn && questBtn.parentNode) {
+            questBtn.parentNode.insertBefore(btn, questBtn.nextSibling);
+            console.log('✅ AutoBuilder button inserted after quest button');
+        } else if (questBtn) {
+            questBtn.appendChild(btn);
+            console.log('✅ AutoBuilder button appended to quest button');
+        } else {
+            document.body.appendChild(btn);
+            console.log('✅ AutoBuilder button appended to body (fallback)');
+        }
+        
+        console.log('🎉 AutoBuilder button created successfully!');
+    }
+
+    function createFloatingButton() {
+        // Check if floating button already exists
+        if (document.getElementById('autobuilder-floating-btn')) {
+            return;
+        }
+
+        console.log('🎈 Creating floating AutoBuilder button...');
+
+        const floatingBtn = document.createElement('button');
+        floatingBtn.id = 'autobuilder-floating-btn';
+        floatingBtn.innerHTML = '🏗️';
+        floatingBtn.title = 'AutoBuilder Settings';
+        floatingBtn.style.position = 'fixed';
+        floatingBtn.style.top = '10px';
+        floatingBtn.style.right = '10px';
+        floatingBtn.style.width = '50px';
+        floatingBtn.style.height = '50px';
+        floatingBtn.style.background = '#4a90e2';
+        floatingBtn.style.color = 'white';
+        floatingBtn.style.border = 'none';
+        floatingBtn.style.borderRadius = '50%';
+        floatingBtn.style.cursor = 'pointer';
+        floatingBtn.style.fontSize = '20px';
+        floatingBtn.style.zIndex = '10000';
+        floatingBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+        floatingBtn.style.fontWeight = 'bold';
+        
+        floatingBtn.onmouseover = () => {
+            floatingBtn.style.background = '#357abd';
+            floatingBtn.style.transform = 'scale(1.1)';
+        };
+        
+        floatingBtn.onmouseout = () => {
+            floatingBtn.style.background = '#4a90e2';
+            floatingBtn.style.transform = 'scale(1)';
+        };
+        
+        floatingBtn.onclick = () => {
+            try {
+                console.log('🔘 Floating AutoBuilder button clicked');
+                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
+                    window.AutoBuilder.getUI().settings.show();
+                    console.log('✅ Settings panel should be visible now');
+                } else {
+                    console.error('❌ AutoBuilder UI not available');
+                    alert('AutoBuilder UI not available! Please refresh the page.');
+                }
+            } catch (e) {
+                console.error('❌ AutoBuilder UI failed to open:', e);
+                alert('AutoBuilder UI failed to open! Error: ' + e.message);
+            }
+        };
+
+        document.body.appendChild(floatingBtn);
+        console.log('🎉 Floating AutoBuilder button created successfully!');
     }
     
 })(); 
