@@ -44,25 +44,28 @@
     
     function scheduleVillageDataRefresh() {
         const db = window.AutoBuilder.getDatabase();
-        const villages = db.getAllVillages('villages');
-        async function refreshAll() {
+        async function refreshAll(showMsg) {
+            const villages = db.getAllVillages('villages');
+            let refreshed = 0;
             for (const villageId of Object.keys(villages)) {
                 try {
-                    console.log(`🔄 Refreshing data for village ${villageId}...`);
                     const data = await DataCollector.collectAllData();
                     if (data) {
                         db.updateVillage('villages', villageId, data);
-                        console.log(`✅ Data refreshed for village ${villageId}`);
+                        refreshed++;
                     }
                 } catch (err) {
                     console.error(`❌ Failed to refresh data for village ${villageId}:`, err);
                 }
             }
+            if (showMsg) alert(`Villages refreshed: ${refreshed}`);
         }
         // Run immediately on load
-        refreshAll();
+        refreshAll(false);
         // Then every 1 hour
-        setInterval(refreshAll, 60 * 60 * 1000);
+        setInterval(() => refreshAll(false), 60 * 60 * 1000);
+        // Expose for manual refresh
+        window.refreshAllVillages = () => refreshAll(true);
     }
 
     function initializeAutoBuilder() {
@@ -179,7 +182,7 @@
             
             // Only inject the menu bar button
             injectAutoBuilderButton();
-            // Schedule village data refresh every hour
+            // Schedule village data refresh every hour and on start
             scheduleVillageDataRefresh();
         } catch (error) {
             console.error('❌ AutoBuilder initialization failed:', error);

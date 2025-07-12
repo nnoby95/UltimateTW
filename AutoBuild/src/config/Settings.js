@@ -230,89 +230,8 @@ class Settings {
         };
     }
     
-    /**
-     * Add building to costup setup
-     * @param {string} building - Building name
-     * @param {number} targetLevel - Target level
-     */
-    addToCostupSetup(building, targetLevel) {
-        const costupSetup = this.get('costupSetup', []);
-        costupSetup.push({
-            building: building,
-            target_level: targetLevel,
-            added_at: Date.now()
-        });
-        this.set('costupSetup', costupSetup);
-    }
-    
-    /**
-     * Remove building from costup setup
-     * @param {number} index - Index to remove
-     */
-    removeFromCostupSetup(index) {
-        const costupSetup = this.get('costupSetup', []);
-        if (index >= 0 && index < costupSetup.length) {
-            costupSetup.splice(index, 1);
-            this.set('costupSetup', costupSetup);
-        }
-    }
-    
-    /**
-     * Move building in costup setup
-     * @param {number} fromIndex - From index
-     * @param {number} toIndex - To index
-     */
-    moveInCostupSetup(fromIndex, toIndex) {
-        const costupSetup = this.get('costupSetup', []);
-        if (fromIndex >= 0 && fromIndex < costupSetup.length && 
-            toIndex >= 0 && toIndex < costupSetup.length) {
-            const item = costupSetup.splice(fromIndex, 1)[0];
-            costupSetup.splice(toIndex, 0, item);
-            this.set('costupSetup', costupSetup);
-        }
-    }
-    
-    /**
-     * Clear costup setup
-     */
-    clearCostupSetup() {
-        this.set('costupSetup', []);
-    }
-    
-    /**
-     * Get next building from costup setup
-     * @param {object} villageData - Current village data
-     * @returns {object|null} Next building plan
-     */
-    getNextBuildingFromCostup(villageData) {
-        const costupSetup = this.get('costupSetup', []);
-        const currentBuildings = villageData.buildings || {};
-        
-        for (let i = 0; i < costupSetup.length; i++) {
-            const plan = costupSetup[i];
-            const currentLevel = currentBuildings[plan.building] || 0;
-            
-            // Check if this building needs to be upgraded
-            if (currentLevel < plan.target_level) {
-                // Check prerequisites (all previous buildings must be at their target levels)
-                let canBuild = true;
-                for (let j = 0; j < i; j++) {
-                    const prereq = costupSetup[j];
-                    const prereqLevel = currentBuildings[prereq.building] || 0;
-                    if (prereqLevel < prereq.target_level) {
-                        canBuild = false;
-                        break;
-                    }
-                }
-                
-                if (canBuild) {
-                    return plan;
-                }
-            }
-        }
-        
-        return null;
-    }
+    // Remove all costup setup methods and references
+    // Only keep template-based logic for building plans
 
     // ===== BUILDING TEMPLATES SYSTEM =====
     
@@ -469,12 +388,12 @@ class Settings {
             }
             
             // Clear current costup setup
-            this.clearCostupSetup();
+            // this.clearCostupSetup(); // Removed
             
             // Add all buildings from template sequence
-            template.sequence.forEach(plan => {
-                this.addToCostupSetup(plan.building, plan.target_level);
-            });
+            // template.sequence.forEach(plan => { // Removed
+            //     this.addToCostupSetup(plan.building, plan.target_level); // Removed
+            // }); // Removed
             
             console.log(`✅ Template "${templateName}" applied to costup setup`);
             return true;

@@ -83,26 +83,6 @@ class SettingsPanel {
                 </div>
                 
                 <div class="autobuilder-section">
-                    <h4>📋 Costup Setup</h4>
-                    <div class="costup-setup">
-                        <div class="costup-controls">
-                            <select id="buildingType">
-                                <!-- Building options will be populated dynamically -->
-                            </select>
-                            <input type="number" id="targetLevel" placeholder="Target Level" min="1" max="30">
-                            <button id="addToCostup" class="autobuilder-btn autobuilder-btn-primary">Add to Costup</button>
-                        </div>
-                        <div class="costup-list">
-                            <h5>Current Costup Setup:</h5>
-                            <div id="costupList" class="costup-items">
-                                <!-- Costup items will be populated here -->
-                            </div>
-                            <button id="clearCostup" class="autobuilder-btn autobuilder-btn-secondary">Clear All</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="autobuilder-section">
                     <h4>🎛️ UI Settings</h4>
                     <div class="setting-group">
                         <label>
@@ -147,11 +127,9 @@ class SettingsPanel {
         `;
         
         document.body.appendChild(this.panel);
-        this.populateBuildingDropdown();
         this.renderVillageTemplatesTable();
         this.bindEvents();
         this.loadCurrentSettings();
-        this.updateCostupList();
         // Attach close event
         const closeBtn = this.panel.querySelector('#autobuilder-settings-close');
         if (closeBtn) {
@@ -476,7 +454,6 @@ class SettingsPanel {
             if (confirm('Are you sure you want to reset all settings to defaults?')) {
                 this.settings.reset();
                 this.loadCurrentSettings();
-                this.updateCostupList();
                 alert('Settings reset to defaults!');
             }
         });
@@ -775,16 +752,9 @@ class SettingsPanel {
     }
 
     async refreshVillages() {
-        const db = window.AutoBuilder.getDatabase();
-        // Try to collect data for the current village
-        if (window.game_data && window.game_data.village) {
-            const villageId = window.game_data.village.id.toString();
-            const data = await window.DataCollector.collectAllData();
-            if (data) {
-                db.updateVillage('villages', villageId, data);
-            }
+        if (window.refreshAllVillages) {
+            window.refreshAllVillages();
         }
-        // Optionally, could try to iterate over all known villages
         this.renderVillageTemplatesTable();
     }
 
