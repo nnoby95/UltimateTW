@@ -13,10 +13,26 @@ class SettingsPanel {
      * Initialize the settings panel
      */
     init() {
-        this.settings = window.AutoBuilder.getSettings();
-        this.createPanel();
-        this.addStyles();
-        console.log('⚙️ Settings Panel initialized');
+        try {
+            console.log('⚙️ Initializing Settings Panel...');
+            
+            if (!window.AutoBuilder) {
+                console.error('❌ AutoBuilder not available for Settings Panel');
+                return;
+            }
+            
+            this.settings = window.AutoBuilder.getSettings();
+            if (!this.settings) {
+                console.error('❌ Settings not available for Settings Panel');
+                return;
+            }
+            
+            this.createPanel();
+            this.addStyles();
+            console.log('⚙️ Settings Panel initialized successfully');
+        } catch (error) {
+            console.error('❌ Settings Panel initialization failed:', error);
+        }
     }
     
     /**
@@ -38,7 +54,7 @@ class SettingsPanel {
         this.panel.innerHTML = `
             <div class="autobuilder-header">
                 <h3>🏗️ Auto Builder Settings</h3>
-                <button class="autobuilder-close" onclick="window.AutoBuilder.getUI().settings.toggle()">×</button>
+                <button class="autobuilder-close" id="autobuilder-settings-close">×</button>
             </div>
             <div class="autobuilder-content">
                 <div class="autobuilder-section">
@@ -103,6 +119,11 @@ class SettingsPanel {
                 </div>
                 
                 <div class="autobuilder-section">
+                    <h4>🏘️ Village Templates</h4>
+                    <div id="villageTemplatesTable"></div>
+                </div>
+                
+                <div class="autobuilder-section">
                     <h4>🔧 Actions</h4>
                     <div class="setting-group">
                         <button id="saveSettings" class="autobuilder-btn autobuilder-btn-primary">Save Settings</button>
@@ -121,9 +142,15 @@ class SettingsPanel {
         
         document.body.appendChild(this.panel);
         this.populateBuildingDropdown();
+        this.renderVillageTemplatesTable();
         this.bindEvents();
         this.loadCurrentSettings();
         this.updateCostupList();
+        // Attach close event
+        const closeBtn = this.panel.querySelector('#autobuilder-settings-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hide());
+        }
     }
     
     /**
@@ -675,8 +702,31 @@ class SettingsPanel {
      * Show the settings panel
      */
     show() {
-        this.panel.style.display = 'block';
-        this.isVisible = true;
+        try {
+            console.log('🔍 Attempting to show Settings Panel...');
+            
+            if (!this.panel) {
+                console.error('❌ Settings Panel not created yet');
+                this.createPanel();
+            }
+            
+            if (!this.panel) {
+                console.error('❌ Failed to create Settings Panel');
+                alert('Failed to create Settings Panel. Please refresh the page.');
+                return;
+            }
+            
+            this.panel.style.display = 'block';
+            this.isVisible = true;
+            console.log('✅ Settings Panel should now be visible');
+            
+            // Ensure panel is on top
+            this.panel.style.zIndex = '10001';
+            
+        } catch (error) {
+            console.error('❌ Failed to show Settings Panel:', error);
+            alert('Failed to show Settings Panel: ' + error.message);
+        }
     }
     
     /**
@@ -709,5 +759,44 @@ class SettingsPanel {
         toggle.onclick = () => this.toggle();
         
         document.body.appendChild(toggle);
+    }
+
+    renderVillageTemplatesTable() {
+        const tableDiv = document.getElementById('villageTemplatesTable');
+        if (!tableDiv) return;
+        const db = window.AutoBuilder.getDatabase();
+        const settings = window.AutoBuilder.getSettings();
+        const villages = db.getAllVillages('villages');
+        const templates = settings.getBuildingTemplates();
+        const vt = settings.getAllVillageTemplates();
+        let html = `<table class="vis" style="width:100%;font-size:13px;">
+            <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
+        Object.entries(villages).forEach(([villageId, v]) => {
+            const name = v.info?.name || villageId;
+            const currentTemplate = vt[villageId] || '';
+            html += `<tr>
+                <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
+                <td>
+                    <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
+                        <option value="">-- Select Template --</option>`;
+            Object.keys(templates).forEach(tname => {
+                html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+            });
+            html += `</select>
+                </td>
+                <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
+            </tr>`;
+        });
+        html += `</table>`;
+        tableDiv.innerHTML = html;
+        // Add event listeners
+        tableDiv.querySelectorAll('.village-template-select').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const villageId = e.target.getAttribute('data-village');
+                const templateName = e.target.value;
+                settings.setVillageTemplate(villageId, templateName);
+                this.renderVillageTemplatesTable();
+            });
+        });
     }
 } 

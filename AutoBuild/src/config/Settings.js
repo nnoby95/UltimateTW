@@ -605,4 +605,33 @@ class Settings {
             estimatedTime: template.sequence.length * 3600 // Rough estimate
         };
     }
+
+    /**
+     * Get the template assigned to a specific village
+     * @param {string} villageId
+     * @returns {string|null} Template name
+     */
+    getVillageTemplate(villageId) {
+        const vt = this.get('villageTemplates', {});
+        return vt[villageId] || null;
+    }
+
+    /**
+     * Assign a template to a specific village
+     * @param {string} villageId
+     * @param {string} templateName
+     */
+    setVillageTemplate(villageId, templateName) {
+        const vt = this.get('villageTemplates', {});
+        vt[villageId] = templateName;
+        this.set('villageTemplates', vt);
+    }
+
+    /**
+     * Get all village-template assignments
+     * @returns {object} { [villageId]: templateName }
+     */
+    getAllVillageTemplates() {
+        return this.get('villageTemplates', {});
+    }
 } 

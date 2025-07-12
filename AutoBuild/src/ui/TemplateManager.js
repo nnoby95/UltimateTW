@@ -38,7 +38,7 @@ class TemplateManager {
         this.panel.innerHTML = `
             <div class="autobuilder-header">
                 <h3>📋 Building Templates</h3>
-                <button class="autobuilder-close" onclick="window.AutoBuilder.getUI().templates.toggle()">×</button>
+                <button class="autobuilder-close" id="autobuilder-templates-close">×</button>
             </div>
             <div class="autobuilder-content">
                 <div class="autobuilder-section">
@@ -108,6 +108,11 @@ class TemplateManager {
         this.bindEvents();
         this.loadTemplates();
         this.updateActiveTemplate();
+        // Attach close event
+        const closeBtn = this.panel.querySelector('#autobuilder-templates-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hide());
+        }
     }
     
     /**

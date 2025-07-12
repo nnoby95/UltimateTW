@@ -86,11 +86,11 @@ class AutoBuildBot {
         if (!this.shouldRun()) {
             return;
         }
-        
+
         try {
             this.lastCheck = Date.now();
             const villageId = game_data.village.id.toString();
-            
+
             // Get village data
             const villageData = this.database.getVillage('villages', villageId);
             if (!villageData) {
@@ -98,45 +98,38 @@ class AutoBuildBot {
                 await this.collectVillageData(villageId);
                 return;
             }
-            
+
             // Get current game queue
             const gameQueue = await this.getCurrentGameQueue(villageId);
             console.log(`📋 Current game queue: ${gameQueue.length}/5 buildings`);
-            
+
             // Check if we can add more buildings to game queue
             if (gameQueue.length >= 5) {
                 console.log('ℹ️ Game queue is full (5/5), waiting...');
                 return;
             }
-            
-            // Get next building - check templates first, then costup setup
-            let nextBuilding = null;
-            const activeTemplate = this.settings.get('activeTemplate');
-            
-            if (activeTemplate) {
-                // Use template-based building
-                nextBuilding = this.settings.getNextBuildingFromTemplate(activeTemplate, villageData);
-                if (nextBuilding) {
-                    console.log(`📋 Next building from template "${activeTemplate}": ${nextBuilding.building} → Level ${nextBuilding.target_level}`);
-                }
-            } else {
-                // Use costup setup
-                nextBuilding = this.settings.getNextBuildingFromCostup(villageData);
-                if (nextBuilding) {
-                    console.log(`📋 Next building from costup: ${nextBuilding.building} → Level ${nextBuilding.target_level}`);
-                }
-            }
-            
-            if (!nextBuilding) {
-                console.log('ℹ️ No more buildings to build');
+
+            // Get the template assigned to this village
+            const templateName = this.settings.getVillageTemplate(villageId);
+            if (!templateName) {
+                console.log(`ℹ️ No template assigned to village ${villageId}, skipping.`);
                 return;
             }
-            
+
+            // Use template-based building only
+            let nextBuilding = this.settings.getNextBuildingFromTemplate(templateName, villageData);
+            if (nextBuilding) {
+                console.log(`📋 Next building from template "${templateName}": ${nextBuilding.building} → Level ${nextBuilding.target_level}`);
+            } else {
+                console.log(`ℹ️ No more buildings to build for template "${templateName}" in village ${villageId}`);
+                return;
+            }
+
             // Check if we can build this building
             if (this.canBuild(villageData, nextBuilding, gameQueue)) {
                 await this.build(nextBuilding);
             }
-            
+
         } catch (error) {
             console.error('❌ Error in checkAndBuild:', error);
         }
