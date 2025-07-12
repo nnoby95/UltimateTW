@@ -54,7 +54,10 @@ class SettingsPanel {
         this.panel.innerHTML = `
             <div class="autobuilder-header">
                 <h3>🏗️ Auto Builder Settings</h3>
-                <button class="autobuilder-close" id="autobuilder-settings-close">×</button>
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <button class="autobuilder-minimize" id="autobuilder-settings-minimize" title="Minimize">_</button>
+                    <button class="autobuilder-close" id="autobuilder-settings-close">×</button>
+                </div>
             </div>
             <div class="autobuilder-content">
                 <div class="autobuilder-section">
@@ -149,6 +152,17 @@ class SettingsPanel {
             });
         }
         this.makeDraggable(this.panel, this.panel.querySelector('.autobuilder-header'));
+        if (!document.getElementById('autobuilder-settings-restore')) {
+            const restoreBtn = document.createElement('button');
+            restoreBtn.id = 'autobuilder-settings-restore';
+            restoreBtn.className = 'autobuilder-restore';
+            restoreBtn.innerText = 'Auto Builder Settings';
+            restoreBtn.onclick = () => {
+                this.panel.style.display = 'block';
+                restoreBtn.style.display = 'none';
+            };
+            document.body.appendChild(restoreBtn);
+        }
     }
     
     /**
@@ -244,6 +258,36 @@ class SettingsPanel {
                 cursor: pointer;
                 padding: 0;
                 width: 30px;
+            }
+            .autobuilder-minimize {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                padding: 0 6px;
+                width: 28px;
+            }
+            .autobuilder-minimize:hover {
+                color: #ffe082;
+            }
+            .autobuilder-restore {
+                position: fixed;
+                left: 18px;
+                bottom: 18px;
+                z-index: 10001;
+                background: #c1a264;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                font-size: 18px;
+                padding: 6px 16px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                cursor: pointer;
+                display: none;
+            }
+            .autobuilder-restore:hover {
+                background: #a07d3b;
             }
             .autobuilder-content {
                 padding: 18px 22px 18px 22px;
@@ -413,6 +457,14 @@ class SettingsPanel {
         if (templatesBtn) {
             templatesBtn.addEventListener('click', () => {
                 window.AutoBuilder.getUI().templates.show();
+            });
+        }
+        const minimizeBtn = document.getElementById('autobuilder-settings-minimize');
+        const restoreBtn = document.getElementById('autobuilder-settings-restore');
+        if (minimizeBtn && restoreBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                this.panel.style.display = 'none';
+                restoreBtn.style.display = 'block';
             });
         }
     }
@@ -795,17 +847,20 @@ class SettingsPanel {
         handle = handle || element;
         handle.style.cursor = 'move';
         handle.onmousedown = (e) => {
+            // Only recalculate position if transform is set (first drag)
+            if (element.style.transform) {
+                const rect = element.getBoundingClientRect();
+                element.style.left = rect.left + 'px';
+                element.style.top = rect.top + 'px';
+                element.style.right = '';
+                element.style.bottom = '';
+                element.style.position = 'fixed';
+                element.style.transform = '';
+            }
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
-            // Remove transform and set left/top to current position
             const rect = element.getBoundingClientRect();
-            element.style.left = rect.left + 'px';
-            element.style.top = rect.top + 'px';
-            element.style.right = '';
-            element.style.bottom = '';
-            element.style.position = 'fixed';
-            element.style.transform = '';
             startLeft = rect.left;
             startTop = rect.top;
             document.onmousemove = (e2) => {
