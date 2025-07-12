@@ -203,33 +203,32 @@ class SettingsPanel {
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background: white;
-                border: 2px solid #4a90e2;
+                background: #f4e4bc;
+                border: 2px solid #c1a264;
                 border-radius: 8px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 z-index: 10000;
-                min-width: 500px;
-                max-width: 700px;
+                min-width: 700px;
+                max-width: 900px;
                 max-height: 80vh;
                 overflow-y: auto;
-                font-family: Arial, sans-serif;
+                font-family: Verdana, Arial, sans-serif;
             }
-            
             .autobuilder-header {
-                background: #4a90e2;
-                color: white;
+                background: #c1a264;
+                color: #fff;
                 padding: 15px;
                 border-radius: 6px 6px 0 0;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
-            
             .autobuilder-header h3 {
                 margin: 0;
                 font-size: 16px;
+                font-weight: bold;
+                letter-spacing: 1px;
             }
-            
             .autobuilder-close {
                 background: none;
                 border: none;
@@ -238,182 +237,48 @@ class SettingsPanel {
                 cursor: pointer;
                 padding: 0;
                 width: 30px;
-                height: 30px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
             }
-            
-            .autobuilder-close:hover {
-                background: rgba(255,255,255,0.2);
-            }
-            
             .autobuilder-content {
-                padding: 20px;
+                padding: 18px 22px 18px 22px;
+                background: #fff8e1;
             }
-            
             .autobuilder-section {
-                margin-bottom: 25px;
+                margin-bottom: 18px;
             }
-            
             .autobuilder-section h4 {
-                margin: 0 0 15px 0;
-                color: #333;
-                font-size: 14px;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 5px;
+                margin: 0 0 8px 0;
+                font-size: 15px;
+                color: #a07d3b;
+                font-weight: bold;
+                border-bottom: 1px solid #e2c785;
+                padding-bottom: 2px;
             }
-            
-            .setting-group {
-                margin-bottom: 15px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .setting-group label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 13px;
-                color: #555;
-                min-width: 150px;
-            }
-            
-            .setting-group input[type="checkbox"] {
-                margin: 0;
-            }
-            
-            .setting-group input[type="number"] {
-                width: 80px;
-                padding: 5px;
-                border: 1px solid #ddd;
-                border-radius: 3px;
-                font-size: 12px;
-            }
-            
-            .setting-group small {
-                color: #999;
-                font-size: 11px;
-            }
-            
-            .costup-setup {
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                padding: 15px;
-                background: #f9f9f9;
-            }
-            
-            .costup-controls {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 15px;
-                align-items: center;
-            }
-            
-            .costup-controls select {
-                padding: 5px;
-                border: 1px solid #ddd;
-                border-radius: 3px;
-                font-size: 12px;
-                min-width: 120px;
-            }
-            
-            .costup-controls input {
-                padding: 5px;
-                border: 1px solid #ddd;
-                border-radius: 3px;
-                font-size: 12px;
-                width: 80px;
-            }
-            
-            .costup-list h5 {
-                margin: 0 0 10px 0;
-                font-size: 13px;
-                color: #333;
-            }
-            
-            .costup-items {
-                max-height: 150px;
-                overflow-y: auto;
-                border: 1px solid #ddd;
-                border-radius: 3px;
-                background: white;
-                padding: 5px;
-            }
-            
-            .costup-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 5px;
-                border-bottom: 1px solid #eee;
-                font-size: 12px;
-            }
-            
-            .costup-item:last-child {
-                border-bottom: none;
-            }
-            
-            .costup-item .building-info {
-                flex: 1;
-            }
-            
-            .costup-item .actions {
-                display: flex;
-                gap: 5px;
-            }
-            
-            .costup-item .remove-btn {
-                background: #ff6b6b;
-                color: white;
-                border: none;
-                border-radius: 3px;
-                padding: 2px 6px;
-                font-size: 10px;
-                cursor: pointer;
-            }
-            
-            .costup-item .move-btn {
-                background: #4a90e2;
-                color: white;
-                border: none;
-                border-radius: 3px;
-                padding: 2px 6px;
-                font-size: 10px;
-                cursor: pointer;
-            }
-            
             .autobuilder-btn {
-                padding: 8px 15px;
-                border: none;
+                font-size: 13px;
+                padding: 5px 14px;
                 border-radius: 4px;
+                border: 1px solid #c1a264;
+                background: #f4e4bc;
+                color: #6b4e1e;
                 cursor: pointer;
-                font-size: 12px;
-                margin-right: 10px;
-                margin-bottom: 5px;
+                margin-right: 6px;
             }
-            
             .autobuilder-btn-primary {
-                background: #4a90e2;
-                color: white;
+                background: #c1a264;
+                color: #fff;
+                border: 1px solid #a07d3b;
             }
-            
             .autobuilder-btn-primary:hover {
-                background: #357abd;
+                background: #a07d3b;
             }
-            
             .autobuilder-btn-secondary {
-                background: #f5f5f5;
-                color: #333;
-                border: 1px solid #ddd;
+                background: #f4e4bc;
+                color: #6b4e1e;
+                border: 1px solid #c1a264;
             }
-            
             .autobuilder-btn-secondary:hover {
                 background: #e5e5e5;
             }
-            
             .autobuilder-toggle {
                 position: fixed;
                 top: 10px;
@@ -429,15 +294,71 @@ class SettingsPanel {
                 z-index: 9999;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             }
-            
             .autobuilder-toggle:hover {
                 background: #357abd;
             }
+            .autobuilder-village-table {
+                border-collapse: collapse;
+                background: #fff8e1;
+                width: 100%;
+            }
+            .autobuilder-village-table th {
+                background: #e2c785;
+                color: #6b4e1e;
+                font-size: 13px;
+                font-weight: bold;
+                border: 1px solid #c1a264;
+                padding: 6px 8px;
+                text-align: left;
+            }
+            .autobuilder-village-table td {
+                border: 1px solid #e2c785;
+                padding: 6px 8px;
+                background: #fff;
+                color: #3d2b0b;
+                font-size: 13px;
+            }
+            .autobuilder-village-table tr:nth-child(even) td {
+                background: #f9efd2;
+            }
+            .autobuilder-village-table tr:hover td {
+                background: #f4e4bc;
+            }
+            .autobuilder-village-table select {
+                font-size: 13px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                border: 1px solid #c1a264;
+                background: #fff8e1;
+            }
+            .setting-group {
+                margin-bottom: 10px;
+            }
+            label {
+                font-size: 13px;
+            }
+            input[type="checkbox"] {
+                vertical-align: middle;
+            }
+            input[type="number"] {
+                font-size: 13px;
+                padding: 2px 4px;
+                border-radius: 3px;
+                border: 1px solid #c1a264;
+                background: #fff8e1;
+            }
+            small {
+                color: #a07d3b;
+            }
         `;
-        
-        const styleSheet = document.createElement('style');
-        styleSheet.textContent = styles;
-        document.head.appendChild(styleSheet);
+        // Remove any previous style
+        let autobuilderStyle = document.getElementById('autobuilder-style');
+        if (autobuilderStyle) autobuilderStyle.remove();
+        // Add new style
+        autobuilderStyle = document.createElement('style');
+        autobuilderStyle.id = 'autobuilder-style';
+        autobuilderStyle.innerHTML = styles;
+        document.head.appendChild(autobuilderStyle);
     }
     
     /**
@@ -808,7 +729,7 @@ class SettingsPanel {
             if (villageEntries.length === 0) {
                 html += `<div style="color:#b00;font-size:13px;margin-bottom:8px;">No villages found. Please click 'Refresh Villages' or visit your villages in-game.</div>`;
             } else {
-                html += `<table class="vis" style="width:100%;font-size:13px;">
+                html += `<table class="vis autobuilder-village-table" style="width:100%;font-size:13px;">
                     <tr><th>Village</th><th>Template</th><th>Status</th><th>Resources / Population</th></tr>`;
                 villageEntries.forEach(([villageId, v]) => {
                     const name = v.info?.name || villageId;
@@ -823,14 +744,14 @@ class SettingsPanel {
                     resHtml += `<span class='icon header iron' style='vertical-align:middle;'></span> <span>${res.iron !== undefined ? res.iron : '-'}</span> &nbsp;`;
                     resHtml += `<span class='icon header population' style='vertical-align:middle;'></span> <span>${pop}/${popMax}</span>`;
                     html += `<tr>
-                        <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
+                        <td><span class='icon header village' style='vertical-align:middle;'></span> ${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
                         <td>
                             <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
                                 <option value="">-- Select Template --</option>`;
-                    Object.keys(templates).forEach(tname => {
-                        html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
-                    });
-                    html += `</select>
+                Object.keys(templates).forEach(tname => {
+                    html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+                });
+                html += `</select>
                         </td>
                         <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
                         <td>${resHtml}</td>
