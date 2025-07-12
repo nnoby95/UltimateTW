@@ -107,6 +107,13 @@ class TemplateManager {
         `;
         
         document.body.appendChild(this.panel);
+        // Center the panel using left/top
+        setTimeout(() => {
+            const w = this.panel.offsetWidth;
+            const h = this.panel.offsetHeight;
+            this.panel.style.left = `calc(50vw - ${w/2}px)`;
+            this.panel.style.top = `calc(20vh)`;
+        }, 0);
         this.makeDraggable(this.panel, this.panel.querySelector('.autobuilder-header'));
         this.populateBuildingDropdown();
         this.bindEvents();
@@ -778,6 +785,19 @@ class TemplateManager {
             }
             .autobuilder-restore:hover {
                 background: #a07d3b;
+            }
+            .autobuilder-panel {
+                position: fixed;
+                background: #f4e4bc;
+                border: 2px solid #c1a264;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                z-index: 10000;
+                min-width: 950px;
+                max-width: 1200px;
+                max-height: 80vh;
+                overflow-y: auto;
+                font-family: Verdana, Arial, sans-serif;
             }
         `;
         

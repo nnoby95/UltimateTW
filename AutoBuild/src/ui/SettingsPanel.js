@@ -163,6 +163,13 @@ class SettingsPanel {
             };
             document.body.appendChild(restoreBtn);
         }
+        // Center the panel using left/top
+        setTimeout(() => {
+            const w = this.panel.offsetWidth;
+            const h = this.panel.offsetHeight;
+            this.panel.style.left = `calc(50vw - ${w/2}px)`;
+            this.panel.style.top = `calc(20vh)`;
+        }, 0);
     }
     
     /**
@@ -221,9 +228,6 @@ class SettingsPanel {
         const styles = `
             .autobuilder-panel {
                 position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
                 background: #f4e4bc;
                 border: 2px solid #c1a264;
                 border-radius: 8px;
