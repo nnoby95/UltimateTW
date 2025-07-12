@@ -128,8 +128,8 @@ class SettingsPanel {
         
         document.body.appendChild(this.panel);
         this.renderVillageTemplatesTable();
-        this.bindEvents();
         this.loadCurrentSettings();
+        this.bindEvents();
         // Attach close event
         const closeBtn = this.panel.querySelector('#autobuilder-settings-close');
         if (closeBtn) {
@@ -445,47 +445,48 @@ class SettingsPanel {
      */
     bindEvents() {
         // Save settings
-        document.getElementById('saveSettings').addEventListener('click', () => {
-            this.saveSettings();
-        });
+        const saveBtn = document.getElementById('saveSettings');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.saveSettings();
+            });
+        }
         
         // Reset settings
-        document.getElementById('resetSettings').addEventListener('click', () => {
-            if (confirm('Are you sure you want to reset all settings to defaults?')) {
-                this.settings.reset();
-                this.loadCurrentSettings();
-                alert('Settings reset to defaults!');
-            }
-        });
+        const resetBtn = document.getElementById('resetSettings');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                    this.settings.reset();
+                    this.loadCurrentSettings();
+                    alert('Settings reset to defaults!');
+                }
+            });
+        }
         
         // Export settings
-        document.getElementById('exportSettings').addEventListener('click', () => {
-            this.exportSettings();
-        });
+        const exportBtn = document.getElementById('exportSettings');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportSettings();
+            });
+        }
         
         // Import settings
-        document.getElementById('importSettings').addEventListener('click', () => {
-            this.importSettings();
-        });
-        
-        // Add to costup
-        document.getElementById('addToCostup').addEventListener('click', () => {
-            this.addToCostup();
-        });
-        
-        // Clear costup
-        document.getElementById('clearCostup').addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear the entire costup setup?')) {
-                this.settings.clearCostupSetup();
-                this.updateCostupList();
-                alert('Costup setup cleared!');
-            }
-        });
+        const importBtn = document.getElementById('importSettings');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => {
+                this.importSettings();
+            });
+        }
         
         // Open templates
-        document.getElementById('openTemplates').addEventListener('click', () => {
-            window.AutoBuilder.getUI().templates.show();
-        });
+        const templatesBtn = document.getElementById('openTemplates');
+        if (templatesBtn) {
+            templatesBtn.addEventListener('click', () => {
+                window.AutoBuilder.getUI().templates.show();
+            });
+        }
     }
     
     /**
@@ -495,14 +496,24 @@ class SettingsPanel {
         const settings = this.settings.getAll();
         
         // Bot settings
-        document.getElementById('autoBuildEnabled').checked = settings.autoBuildEnabled;
-        document.getElementById('checkInterval').value = settings.checkInterval;
-        document.getElementById('maxQueueSize').value = settings.maxQueueSize;
+        const autoBuildEnabled = document.getElementById('autoBuildEnabled');
+        if (autoBuildEnabled) autoBuildEnabled.checked = settings.autoBuildEnabled;
+        
+        const checkInterval = document.getElementById('checkInterval');
+        if (checkInterval) checkInterval.value = settings.checkInterval;
+        
+        const maxQueueSize = document.getElementById('maxQueueSize');
+        if (maxQueueSize) maxQueueSize.value = settings.maxQueueSize;
         
         // UI settings
-        document.getElementById('showSettingsPanel').checked = settings.showSettingsPanel;
-        document.getElementById('showBuildQueue').checked = settings.showBuildQueue;
-        document.getElementById('showVillageManager').checked = settings.showVillageManager;
+        const showSettingsPanel = document.getElementById('showSettingsPanel');
+        if (showSettingsPanel) showSettingsPanel.checked = settings.showSettingsPanel;
+        
+        const showBuildQueue = document.getElementById('showBuildQueue');
+        if (showBuildQueue) showBuildQueue.checked = settings.showBuildQueue;
+        
+        const showVillageManager = document.getElementById('showVillageManager');
+        if (showVillageManager) showVillageManager.checked = settings.showVillageManager;
     }
     
     /**
@@ -511,14 +522,24 @@ class SettingsPanel {
     saveSettings() {
         try {
             // Bot settings
-            this.settings.set('autoBuildEnabled', document.getElementById('autoBuildEnabled').checked);
-            this.settings.set('checkInterval', parseInt(document.getElementById('checkInterval').value));
-            this.settings.set('maxQueueSize', parseInt(document.getElementById('maxQueueSize').value));
+            const autoBuildEnabled = document.getElementById('autoBuildEnabled');
+            if (autoBuildEnabled) this.settings.set('autoBuildEnabled', autoBuildEnabled.checked);
+            
+            const checkInterval = document.getElementById('checkInterval');
+            if (checkInterval) this.settings.set('checkInterval', parseInt(checkInterval.value));
+            
+            const maxQueueSize = document.getElementById('maxQueueSize');
+            if (maxQueueSize) this.settings.set('maxQueueSize', parseInt(maxQueueSize.value));
             
             // UI settings
-            this.settings.set('showSettingsPanel', document.getElementById('showSettingsPanel').checked);
-            this.settings.set('showBuildQueue', document.getElementById('showBuildQueue').checked);
-            this.settings.set('showVillageManager', document.getElementById('showVillageManager').checked);
+            const showSettingsPanel = document.getElementById('showSettingsPanel');
+            if (showSettingsPanel) this.settings.set('showSettingsPanel', showSettingsPanel.checked);
+            
+            const showBuildQueue = document.getElementById('showBuildQueue');
+            if (showBuildQueue) this.settings.set('showBuildQueue', showBuildQueue.checked);
+            
+            const showVillageManager = document.getElementById('showVillageManager');
+            if (showVillageManager) this.settings.set('showVillageManager', showVillageManager.checked);
             
             alert('Settings saved successfully!');
             
