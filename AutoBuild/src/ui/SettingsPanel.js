@@ -773,54 +773,76 @@ class SettingsPanel {
     }
 
     async refreshVillages() {
-        if (window.refreshAllVillages) {
-            window.refreshAllVillages();
+        try {
+            console.log('🔄 Refreshing villages...');
+            
+            // Use the actual working data collection from Helper.js
+            if (typeof getInfo === 'function') {
+                await getInfo();
+                console.log('✅ Village data refreshed using getInfo()');
+            } else {
+                console.warn('⚠️ getInfo() function not available');
+            }
+            
+            // Re-render the village table
+            this.renderVillageTemplatesTable();
+            
+        } catch (error) {
+            console.error('❌ Failed to refresh villages:', error);
         }
-        this.renderVillageTemplatesTable();
     }
 
     renderVillageTemplatesTable() {
         const tableDiv = document.getElementById('villageTemplatesTable');
         if (!tableDiv) return;
-        const db = window.AutoBuilder.getDatabase();
-        const settings = window.AutoBuilder.getSettings();
-        const villages = db.getAllVillages('villages');
-        const templates = settings.getBuildingTemplates();
-        const vt = settings.getAllVillageTemplates();
-        const villageEntries = Object.entries(villages);
-        let html = '';
-        if (villageEntries.length === 0) {
-            html += `<div style="color:#b00;font-size:13px;margin-bottom:8px;">No villages found. Please click 'Refresh Villages' or visit your villages in-game.</div>`;
-        } else {
-            html += `<table class="vis" style="width:100%;font-size:13px;">
-                <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
-            villageEntries.forEach(([villageId, v]) => {
-                const name = v.info?.name || villageId;
-                const currentTemplate = vt[villageId] || '';
-                html += `<tr>
-                    <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
-                    <td>
-                        <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
-                            <option value="">-- Select Template --</option>`;
-                Object.keys(templates).forEach(tname => {
-                    html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+        
+        try {
+            // Use the actual database from Helper.js
+            const villages = typeof SimpleDB !== 'undefined' ? SimpleDB.getAllVillages() : {};
+            const settings = window.AutoBuilder.getSettings();
+            const templates = settings.getBuildingTemplates();
+            const vt = settings.getAllVillageTemplates();
+            const villageEntries = Object.entries(villages);
+            
+            let html = '';
+            if (villageEntries.length === 0) {
+                html += `<div style="color:#b00;font-size:13px;margin-bottom:8px;">No villages found. Please click 'Refresh Villages' or visit your villages in-game.</div>`;
+            } else {
+                html += `<table class="vis" style="width:100%;font-size:13px;">
+                    <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
+                villageEntries.forEach(([villageId, v]) => {
+                    const name = v.info?.name || villageId;
+                    const currentTemplate = vt[villageId] || '';
+                    html += `<tr>
+                        <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
+                        <td>
+                            <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
+                                <option value="">-- Select Template --</option>`;
+                    Object.keys(templates).forEach(tname => {
+                        html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+                    });
+                    html += `</select>
+                        </td>
+                        <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
+                    </tr>`;
                 });
-                html += `</select>
-                    </td>
-                    <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
-                </tr>`;
+                html += `</table>`;
+            }
+            tableDiv.innerHTML = html;
+            
+            // Add event listeners
+            tableDiv.querySelectorAll('.village-template-select').forEach(sel => {
+                sel.addEventListener('change', (e) => {
+                    const villageId = e.target.getAttribute('data-village');
+                    const templateName = e.target.value;
+                    settings.setVillageTemplate(villageId, templateName);
+                    this.renderVillageTemplatesTable();
+                });
             });
-            html += `</table>`;
+            
+        } catch (error) {
+            console.error('❌ Failed to render village templates table:', error);
+            tableDiv.innerHTML = `<div style="color:#b00;font-size:13px;">Error loading villages: ${error.message}</div>`;
         }
-        tableDiv.innerHTML = html;
-        // Add event listeners
-        tableDiv.querySelectorAll('.village-template-select').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                const villageId = e.target.getAttribute('data-village');
-                const templateName = e.target.value;
-                settings.setVillageTemplate(villageId, templateName);
-                this.renderVillageTemplatesTable();
-            });
-        });
     }
 } 
