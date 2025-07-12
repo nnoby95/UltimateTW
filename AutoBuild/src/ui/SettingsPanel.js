@@ -60,7 +60,13 @@ class SettingsPanel {
                 <div class="autobuilder-section">
                     <h4>🏘️ Villages</h4>
                     <div id="villageTemplatesTable"></div>
-                    <button id="refreshVillagesBtn" class="autobuilder-btn autobuilder-btn-secondary" style="margin-top:8px;">Refresh Villages</button>
+                    <div class="setting-group" style="margin-top:8px;">
+                        <button id="refreshVillagesBtn" class="autobuilder-btn autobuilder-btn-secondary">Refresh Villages</button>
+                    </div>
+                    <div class="setting-group">
+                        <label>Refresh Villages Interval (minutes):</label>
+                        <input type="number" id="villageRefreshInterval" min="1" max="120" style="width:60px;"> <small>(Set how often to auto-refresh villages)</small>
+                    </div>
                 </div>
                 
                 <div class="autobuilder-section">
@@ -142,6 +148,7 @@ class SettingsPanel {
                 this.refreshVillages();
             });
         }
+        this.makeDraggable(this.panel, this.panel.querySelector('.autobuilder-header'));
     }
     
     /**
@@ -781,5 +788,34 @@ class SettingsPanel {
             console.error('❌ Failed to render village templates table:', error);
             tableDiv.innerHTML = `<div style="color:#b00;font-size:13px;">Error loading villages: ${error.message}</div>`;
         }
+    }
+
+    makeDraggable(element, handle) {
+        let isDragging = false, startX, startY, startLeft, startTop;
+        handle = handle || element;
+        handle.style.cursor = 'move';
+        handle.onmousedown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = element.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            document.onmousemove = (e2) => {
+                if (!isDragging) return;
+                const dx = e2.clientX - startX;
+                const dy = e2.clientY - startY;
+                element.style.left = (startLeft + dx) + 'px';
+                element.style.top = (startTop + dy) + 'px';
+                element.style.right = '';
+                element.style.bottom = '';
+                element.style.position = 'fixed';
+            };
+            document.onmouseup = () => {
+                isDragging = false;
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
     }
 } 

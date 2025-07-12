@@ -104,6 +104,7 @@ class TemplateManager {
         `;
         
         document.body.appendChild(this.panel);
+        this.makeDraggable(this.panel, this.panel.querySelector('.autobuilder-header'));
         this.populateBuildingDropdown();
         this.bindEvents();
         this.loadTemplates();
@@ -778,5 +779,34 @@ class TemplateManager {
         button.innerHTML = '📋 Templates';
         button.onclick = () => this.toggle();
         return button;
+    }
+
+    makeDraggable(element, handle) {
+        let isDragging = false, startX, startY, startLeft, startTop;
+        handle = handle || element;
+        handle.style.cursor = 'move';
+        handle.onmousedown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = element.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            document.onmousemove = (e2) => {
+                if (!isDragging) return;
+                const dx = e2.clientX - startX;
+                const dy = e2.clientY - startY;
+                element.style.left = (startLeft + dx) + 'px';
+                element.style.top = (startTop + dy) + 'px';
+                element.style.right = '';
+                element.style.bottom = '';
+                element.style.position = 'fixed';
+            };
+            document.onmouseup = () => {
+                isDragging = false;
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
     }
 } 
