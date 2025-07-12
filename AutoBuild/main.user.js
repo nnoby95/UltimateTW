@@ -7,21 +7,21 @@
 // @include      https://*.tribalwars.net/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
-// @require      file:///path/to/AutoBuild/src/database/DatabaseManager.js
-// @require      file:///path/to/AutoBuild/src/database/DataCollector.js
-// @require      file:///path/to/AutoBuild/src/bot/AutoBuildBot.js
-// @require      file:///path/to/AutoBuild/src/bot/ResourceMonitor.js
-// @require      file:///path/to/AutoBuild/src/bot/QueueManager.js
-// @require      file:///path/to/AutoBuild/src/ui/SettingsPanel.js
-// @require      file:///path/to/AutoBuild/src/ui/BuildQueueUI.js
-// @require      file:///path/to/AutoBuild/src/ui/VillageManager.js
-// @require      file:///path/to/AutoBuild/src/ui/TemplateManager.js
-// @require      file:///path/to/AutoBuild/src/utils/DataHelper.js
-// @require      file:///path/to/AutoBuild/src/utils/BuildingCosts.js
-// @require      file:///path/to/AutoBuild/src/utils/TimeUtils.js
-// @require      file:///path/to/AutoBuild/src/utils/GameUtils.js
-// @require      file:///path/to/AutoBuild/src/config/Settings.js
-// @require      file:///path/to/AutoBuild/src/config/BuildingConfig.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DatabaseManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DataCollector.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/AutoBuildBot.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/ResourceMonitor.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/QueueManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/SettingsPanel.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/BuildQueueUI.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/VillageManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/TemplateManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/DataHelper.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/BuildingCosts.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/TimeUtils.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/GameUtils.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/config/Settings.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/config/BuildingConfig.js
 // ==/UserScript==
 
 (function() {
