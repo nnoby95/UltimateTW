@@ -208,8 +208,8 @@ class SettingsPanel {
                 border-radius: 8px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 z-index: 10000;
-                min-width: 700px;
-                max-width: 900px;
+                min-width: 950px;
+                max-width: 1200px;
                 max-height: 80vh;
                 overflow-y: auto;
                 font-family: Verdana, Arial, sans-serif;
@@ -435,6 +435,9 @@ class SettingsPanel {
         
         const showVillageManager = document.getElementById('showVillageManager');
         if (showVillageManager) showVillageManager.checked = settings.showVillageManager;
+
+        const villageRefreshInterval = document.getElementById('villageRefreshInterval');
+        if (villageRefreshInterval && settings.villageRefreshInterval !== undefined) villageRefreshInterval.value = settings.villageRefreshInterval;
     }
     
     /**
@@ -461,6 +464,9 @@ class SettingsPanel {
             
             const showVillageManager = document.getElementById('showVillageManager');
             if (showVillageManager) this.settings.set('showVillageManager', showVillageManager.checked);
+
+            const villageRefreshInterval = document.getElementById('villageRefreshInterval');
+            if (villageRefreshInterval) this.settings.set('villageRefreshInterval', parseInt(villageRefreshInterval.value));
             
             alert('Settings saved successfully!');
             

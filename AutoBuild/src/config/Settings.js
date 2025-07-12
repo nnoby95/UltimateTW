@@ -27,6 +27,9 @@ class Settings {
             dataCollectionInterval: 300, // 5 minutes
             maxStoredVillages: 50,
             
+            // Villages refresh interval
+            villageRefreshInterval: 10,
+            
             // Version and metadata
             version: '1.0.0',
             lastUpdated: Date.now()
