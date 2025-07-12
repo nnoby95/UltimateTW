@@ -42,6 +42,29 @@
         }, 1000);
     }
     
+    function scheduleVillageDataRefresh() {
+        const db = window.AutoBuilder.getDatabase();
+        const villages = db.getAllVillages('villages');
+        async function refreshAll() {
+            for (const villageId of Object.keys(villages)) {
+                try {
+                    console.log(`🔄 Refreshing data for village ${villageId}...`);
+                    const data = await DataCollector.collectAllData();
+                    if (data) {
+                        db.updateVillage('villages', villageId, data);
+                        console.log(`✅ Data refreshed for village ${villageId}`);
+                    }
+                } catch (err) {
+                    console.error(`❌ Failed to refresh data for village ${villageId}:`, err);
+                }
+            }
+        }
+        // Run immediately on load
+        refreshAll();
+        // Then every 1 hour
+        setInterval(refreshAll, 60 * 60 * 1000);
+    }
+
     function initializeAutoBuilder() {
         try {
             // Check if we're on a Tribal Wars page
@@ -156,6 +179,8 @@
             
             // Only inject the menu bar button
             injectAutoBuilderButton();
+            // Schedule village data refresh every hour
+            scheduleVillageDataRefresh();
         } catch (error) {
             console.error('❌ AutoBuilder initialization failed:', error);
         }
