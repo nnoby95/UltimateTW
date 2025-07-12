@@ -171,94 +171,56 @@
     }
 
     function injectAutoBuilderButton() {
-        // Try to find the Settings button in the top bar
-        let settingsBtn = Array.from(document.querySelectorAll('a, button')).find(
-            el => el.textContent.trim() === 'Settings' || el.title === 'Settings'
-        );
-
-        // Fallback to previous logic if not found
-        let questBtn = null;
-        if (!settingsBtn) {
-            questBtn = document.querySelector('#new_quest.quest') ||
-                       document.querySelector('#questlog') || 
-                       document.querySelector('.questlog') || 
-                       document.querySelector('[id^="quest"]') ||
-                       document.querySelector('#new_quest') ||
-                       document.querySelector('.quest');
-        }
-        
-        // If neither found, try to find a suitable location in the navigation area
-        if (!settingsBtn && !questBtn) {
-            questBtn = document.querySelector('.navigation') || 
-                       document.querySelector('.menu') ||
-                       document.querySelector('.header') ||
-                       document.querySelector('.topbar');
-            if (!questBtn) {
-                console.log('🔍 Settings/Quest button not found, retrying in 1 second...');
-                setTimeout(injectAutoBuilderButton, 1000);
-                return;
-            }
-        }
-
-        // Check if button already exists
-        if (document.getElementById('autobuilder-toggle-btn')) {
-            console.log('✅ AutoBuilder button already exists');
+        // Find the menu row and all menu-side <td>s
+        const menuRow = document.querySelector('tr#menu_row, tr.menu-row, tr');
+        if (!menuRow) {
+            console.log('🔍 Menu row not found, retrying in 1 second...');
+            setTimeout(injectAutoBuilderButton, 1000);
             return;
         }
-
-        console.log('🔧 Creating AutoBuilder button...');
-
-        // Create the button
-        const btn = document.createElement('button');
-        btn.id = 'autobuilder-toggle-btn';
-        btn.innerHTML = '🏗️ AutoBuilder';
-        btn.style.display = 'inline-block';
-        btn.style.margin = '0 0 0 8px';
-        btn.style.width = '120px';
-        btn.style.background = '#e6c590';
-        btn.style.border = '2px solid #b08d57';
-        btn.style.borderRadius = '6px';
-        btn.style.color = '#5c4320';
-        btn.style.fontWeight = 'bold';
-        btn.style.fontSize = '14px';
-        btn.style.cursor = 'pointer';
-        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
-        btn.style.zIndex = 10001;
-        btn.style.position = 'relative';
-        btn.onmouseover = () => btn.style.background = '#f5e1b8';
-        btn.onmouseout = () => btn.style.background = '#e6c590';
-        btn.onclick = () => {
+        const tds = Array.from(menuRow.querySelectorAll('td.menu-side'));
+        // Find the loading bar <td>
+        const loadingTd = tds.find(td => td.querySelector('#loading_content'));
+        if (!loadingTd) {
+            console.log('🔍 Loading bar <td> not found, retrying in 1 second...');
+            setTimeout(injectAutoBuilderButton, 1000);
+            return;
+        }
+        // Check if already injected
+        if (document.getElementById('autobuilder-menu-btn')) {
+            console.log('✅ AutoBuilder menu button already exists');
+            return;
+        }
+        // Create the <td> and button
+        const autobuilderTd = document.createElement('td');
+        autobuilderTd.className = 'menu-side';
+        autobuilderTd.id = 'autobuilder-menu-btn';
+        // Use a matching <a> with icon and tooltip
+        const autobuilderA = document.createElement('a');
+        autobuilderA.href = '#';
+        autobuilderA.title = 'AutoBuilder';
+        autobuilderA.style.display = 'inline-block';
+        autobuilderA.style.height = '32px';
+        autobuilderA.style.width = '32px';
+        autobuilderA.style.margin = '0 2px';
+        autobuilderA.style.verticalAlign = 'middle';
+        autobuilderA.innerHTML = '<img src="https://dsen.innogamescdn.com/asset/7fe7ab60/graphic/buildings/mid/main3.png" alt="AutoBuilder" style="width:28px;height:28px;vertical-align:middle;">';
+        autobuilderA.onclick = (e) => {
+            e.preventDefault();
             try {
-                console.log('🔘 AutoBuilder button clicked');
                 if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
                     window.AutoBuilder.getUI().settings.show();
-                    console.log('✅ Settings panel should be visible now');
                 } else {
-                    console.error('❌ AutoBuilder UI not available');
                     alert('AutoBuilder UI not available! Please refresh the page.');
                 }
-            } catch (e) {
-                console.error('❌ AutoBuilder UI failed to open:', e);
-                alert('AutoBuilder UI failed to open! Error: ' + e.message);
+            } catch (err) {
+                alert('AutoBuilder UI failed to open! Error: ' + err.message);
             }
         };
-
-        // Insert the button after the Settings button if found
-        if (settingsBtn && settingsBtn.parentNode) {
-            settingsBtn.parentNode.insertBefore(btn, settingsBtn.nextSibling);
-            console.log('✅ AutoBuilder button inserted after Settings button');
-        } else if (questBtn && questBtn.parentNode) {
-            questBtn.parentNode.insertBefore(btn, questBtn.nextSibling);
-            console.log('✅ AutoBuilder button inserted after quest button');
-        } else if (questBtn) {
-            questBtn.appendChild(btn);
-            console.log('✅ AutoBuilder button appended to quest button');
-        } else {
-            document.body.appendChild(btn);
-            console.log('✅ AutoBuilder button appended to body (fallback)');
-        }
-        
-        console.log('🎉 AutoBuilder button created successfully!');
+        autobuilderTd.appendChild(autobuilderA);
+        // Insert before the loading bar <td>
+        loadingTd.parentNode.insertBefore(autobuilderTd, loadingTd);
+        console.log('✅ AutoBuilder menu button inserted before loading bar');
     }
 
     function createFloatingButton() {
