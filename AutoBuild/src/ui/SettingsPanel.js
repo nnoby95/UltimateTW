@@ -58,6 +58,12 @@ class SettingsPanel {
             </div>
             <div class="autobuilder-content">
                 <div class="autobuilder-section">
+                    <h4>🏘️ Villages</h4>
+                    <div id="villageTemplatesTable"></div>
+                    <button id="refreshVillagesBtn" class="autobuilder-btn autobuilder-btn-secondary" style="margin-top:8px;">Refresh Villages</button>
+                </div>
+                
+                <div class="autobuilder-section">
                     <h4>🤖 Bot Settings</h4>
                     <div class="setting-group">
                         <label>
@@ -150,6 +156,13 @@ class SettingsPanel {
         const closeBtn = this.panel.querySelector('#autobuilder-settings-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => this.hide());
+        }
+        // Attach refresh villages event
+        const refreshBtn = this.panel.querySelector('#refreshVillagesBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.refreshVillages();
+            });
         }
     }
     
@@ -761,6 +774,20 @@ class SettingsPanel {
         document.body.appendChild(toggle);
     }
 
+    async refreshVillages() {
+        const db = window.AutoBuilder.getDatabase();
+        // Try to collect data for the current village
+        if (window.game_data && window.game_data.village) {
+            const villageId = window.game_data.village.id.toString();
+            const data = await window.DataCollector.collectAllData();
+            if (data) {
+                db.updateVillage('villages', villageId, data);
+            }
+        }
+        // Optionally, could try to iterate over all known villages
+        this.renderVillageTemplatesTable();
+    }
+
     renderVillageTemplatesTable() {
         const tableDiv = document.getElementById('villageTemplatesTable');
         if (!tableDiv) return;
@@ -769,25 +796,31 @@ class SettingsPanel {
         const villages = db.getAllVillages('villages');
         const templates = settings.getBuildingTemplates();
         const vt = settings.getAllVillageTemplates();
-        let html = `<table class="vis" style="width:100%;font-size:13px;">
-            <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
-        Object.entries(villages).forEach(([villageId, v]) => {
-            const name = v.info?.name || villageId;
-            const currentTemplate = vt[villageId] || '';
-            html += `<tr>
-                <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
-                <td>
-                    <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
-                        <option value="">-- Select Template --</option>`;
-            Object.keys(templates).forEach(tname => {
-                html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+        const villageEntries = Object.entries(villages);
+        let html = '';
+        if (villageEntries.length === 0) {
+            html += `<div style="color:#b00;font-size:13px;margin-bottom:8px;">No villages found. Please click 'Refresh Villages' or visit your villages in-game.</div>`;
+        } else {
+            html += `<table class="vis" style="width:100%;font-size:13px;">
+                <tr><th>Village</th><th>Template</th><th>Status</th></tr>`;
+            villageEntries.forEach(([villageId, v]) => {
+                const name = v.info?.name || villageId;
+                const currentTemplate = vt[villageId] || '';
+                html += `<tr>
+                    <td>${name} <span style="color:#999;font-size:11px;">(${villageId})</span></td>
+                    <td>
+                        <select data-village="${villageId}" class="village-template-select" style="font-size:13px;">
+                            <option value="">-- Select Template --</option>`;
+                Object.keys(templates).forEach(tname => {
+                    html += `<option value="${tname}"${currentTemplate===tname?' selected':''}>${tname}</option>`;
+                });
+                html += `</select>
+                    </td>
+                    <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
+                </tr>`;
             });
-            html += `</select>
-                </td>
-                <td>${currentTemplate ? `<span style='color:green;font-weight:bold;'>Active: ${currentTemplate}</span>` : '<span style="color:#999;">None</span>'}</td>
-            </tr>`;
-        });
-        html += `</table>`;
+            html += `</table>`;
+        }
         tableDiv.innerHTML = html;
         // Add event listeners
         tableDiv.querySelectorAll('.village-template-select').forEach(sel => {
