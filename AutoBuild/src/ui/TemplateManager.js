@@ -789,7 +789,14 @@ class TemplateManager {
             isDragging = true;
             startX = e.clientX;
             startY = e.clientY;
+            // Remove transform and set left/top to current position
             const rect = element.getBoundingClientRect();
+            element.style.left = rect.left + 'px';
+            element.style.top = rect.top + 'px';
+            element.style.right = '';
+            element.style.bottom = '';
+            element.style.position = 'fixed';
+            element.style.transform = '';
             startLeft = rect.left;
             startTop = rect.top;
             document.onmousemove = (e2) => {
@@ -798,9 +805,6 @@ class TemplateManager {
                 const dy = e2.clientY - startY;
                 element.style.left = (startLeft + dx) + 'px';
                 element.style.top = (startTop + dy) + 'px';
-                element.style.right = '';
-                element.style.bottom = '';
-                element.style.position = 'fixed';
             };
             document.onmouseup = () => {
                 isDragging = false;
