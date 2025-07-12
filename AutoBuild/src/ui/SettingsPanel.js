@@ -776,10 +776,10 @@ class SettingsPanel {
         try {
             console.log('🔄 Refreshing villages...');
             
-            // Use the actual working data collection from Helper.js
-            if (typeof getInfo === 'function') {
-                await getInfo();
-                console.log('✅ Village data refreshed using getInfo()');
+            // Use the integrated data collection from main script
+            if (typeof window.getInfo === 'function') {
+                await window.getInfo();
+                console.log('✅ Village data refreshed using integrated getInfo()');
             } else {
                 console.warn('⚠️ getInfo() function not available');
             }
@@ -797,8 +797,8 @@ class SettingsPanel {
         if (!tableDiv) return;
         
         try {
-            // Use the actual database from Helper.js
-            const villages = typeof SimpleDB !== 'undefined' ? SimpleDB.getAllVillages() : {};
+            // Use the integrated database from main script
+            const villages = typeof window.SimpleDB !== 'undefined' ? window.SimpleDB.getAllVillages() : {};
             const settings = window.AutoBuilder.getSettings();
             const templates = settings.getBuildingTemplates();
             const vt = settings.getAllVillageTemplates();
