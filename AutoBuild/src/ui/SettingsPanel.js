@@ -902,6 +902,12 @@ class SettingsPanel {
         if (this.autoRefreshLoopActive) return;
         this.autoRefreshLoopActive = true;
         this.updateAutoRefreshStatus();
+        // Local fallback for sleepRandom
+        const sleepRandom = (min, max) => {
+            if (typeof window.sleepRandom === 'function') return window.sleepRandom(min, max);
+            // fallback: sleep for min ms
+            return new Promise(resolve => setTimeout(resolve, min));
+        };
         const loop = async () => {
             while (this.autoRefreshLoopActive) {
                 // Get base interval from input (minutes)
