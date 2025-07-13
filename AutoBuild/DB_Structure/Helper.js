@@ -492,6 +492,62 @@ function showInfo() {
     console.log('═'.repeat(50));
 }
 
+// Helper: Wait for page load and game_data
+function waitForPageLoad(timeout = 10000) {
+    return new Promise((resolve, reject) => {
+        const start = Date.now();
+        function check() {
+            if (document.readyState === 'complete' && typeof game_data !== 'undefined' && game_data.village) {
+                resolve();
+            } else if (Date.now() - start > timeout) {
+                reject(new Error('Timeout waiting for page load'));
+            } else {
+                setTimeout(check, 100);
+            }
+        }
+        check();
+    });
+}
+
+// Helper: Sleep for a random time between minMs and maxMs
+function sleepRandom(minMs = 500, maxMs = 2000) {
+    const ms = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Get all village IDs (DB first, fallback to manual)
+function getAllVillageIds() {
+    if (window.SimpleDB && typeof window.SimpleDB.getAllVillages === 'function') {
+        const allVillages = window.SimpleDB.getAllVillages();
+        const ids = Object.keys(allVillages);
+        if (ids.length > 0) return ids;
+    }
+    // Fallback: manually provide your village IDs here
+    return [
+        "12345", // Replace with your actual village IDs
+        // "23456",
+        // "34567"
+    ];
+}
+
+// Main: Refresh all villages
+async function refreshAllVillages() {
+    const villageIds = getAllVillageIds();
+    const originalVillage = game_data.village.id.toString();
+    for (const villageId of villageIds) {
+        if (villageId === originalVillage) {
+            await getInfo();
+        } else {
+            window.location.href = `game.php?village=${villageId}&screen=main`;
+            await waitForPageLoad();
+            await getInfo();
+        }
+        await sleepRandom(500, 2000);
+    }
+    // Optionally, return to the original village
+    window.location.href = `game.php?village=${originalVillage}&screen=main`;
+}
+
 // =============================================================================
 // 🏁 AUTO-INITIALIZATION
 // =============================================================================
