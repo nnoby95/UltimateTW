@@ -919,10 +919,10 @@ class SettingsPanel {
                 document.getElementById('autoRefreshStatus').textContent = `Running (next in ${totalMinutes} min)`;
                 await sleepRandom(intervalMs, intervalMs); // Use local fallback
                 if (!this.autoRefreshLoopActive) break;
-                if (typeof window.refreshAllVillages === 'function') {
-                    await window.refreshAllVillages();
-                } else if (typeof window.getInfo === 'function') {
-                    await window.getInfo();
+                // Programmatically click the Refresh Villages button
+                const refreshBtn = document.getElementById('refreshVillagesBtn');
+                if (refreshBtn) {
+                    refreshBtn.click();
                 }
             }
             this.updateAutoRefreshStatus();
