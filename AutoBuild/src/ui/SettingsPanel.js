@@ -911,7 +911,7 @@ class SettingsPanel {
                 const totalMinutes = baseInterval + randomExtra;
                 const intervalMs = totalMinutes * 60 * 1000;
                 document.getElementById('autoRefreshStatus').textContent = `Running (next in ${totalMinutes} min)`;
-                await window.sleepRandom(intervalMs, intervalMs); // Use global version
+                await sleepRandom(intervalMs, intervalMs); // Use local fallback
                 if (!this.autoRefreshLoopActive) break;
                 if (typeof window.refreshAllVillages === 'function') {
                     await window.refreshAllVillages();
