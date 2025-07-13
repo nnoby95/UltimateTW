@@ -562,3 +562,6 @@ if (typeof game_data !== 'undefined' && game_data.village) {
     console.log('');
     console.log('💡 Usage: Run getInfo() first, then showInfo() to see results');
 }
+
+window.sleepRandom = sleepRandom;
+window.waitForPageLoad = waitForPageLoad;
