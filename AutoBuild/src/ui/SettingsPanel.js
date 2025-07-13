@@ -68,7 +68,10 @@ class SettingsPanel {
                     </div>
                     <div class="setting-group">
                         <label>Refresh Villages Interval (minutes):</label>
-                        <input type="number" id="villageRefreshInterval" min="1" max="120" style="width:60px;"> <small>(Set how often to auto-refresh villages)</small>
+                        <input type="number" id="villageRefreshInterval" min="1" max="120" style="width:60px;">
+                        <button id="autoRefreshToggleBtn" class="autobuilder-btn autobuilder-btn-secondary" style="margin-left:8px;">Start</button>
+                        <span id="autoRefreshStatus" style="margin-left:8px;color:#a07d3b;font-size:13px;">Stopped</span>
+                        <small>(Set how often to auto-refresh villages, randomizes +1-5 min)</small>
                     </div>
                 </div>
                 
@@ -469,6 +472,16 @@ class SettingsPanel {
             minimizeBtn.addEventListener('click', () => {
                 this.panel.style.display = 'none';
                 restoreBtn.style.display = 'block';
+            });
+        }
+        const autoRefreshBtn = document.getElementById('autoRefreshToggleBtn');
+        if (autoRefreshBtn) {
+            autoRefreshBtn.addEventListener('click', () => {
+                if (this.autoRefreshLoopActive) {
+                    this.stopAutoRefreshLoop();
+                } else {
+                    this.startAutoRefreshLoop();
+                }
             });
         }
     }
@@ -880,5 +893,51 @@ class SettingsPanel {
                 document.onmouseup = null;
             };
         };
+    }
+
+    autoRefreshLoopActive = false;
+    autoRefreshLoopTimeout = null;
+
+    startAutoRefreshLoop() {
+        if (this.autoRefreshLoopActive) return;
+        this.autoRefreshLoopActive = true;
+        this.updateAutoRefreshStatus();
+        const loop = async () => {
+            while (this.autoRefreshLoopActive) {
+                // Get base interval from input (minutes)
+                const baseInterval = parseInt(document.getElementById('villageRefreshInterval').value) || 1;
+                // Randomize +0-4 minutes
+                const randomExtra = Math.floor(Math.random() * 5); // 0-4
+                const totalMinutes = baseInterval + randomExtra;
+                const intervalMs = totalMinutes * 60 * 1000;
+                document.getElementById('autoRefreshStatus').textContent = `Running (next in ${totalMinutes} min)`;
+                await sleepRandom(intervalMs, intervalMs); // Use same min/max for fixed wait
+                if (!this.autoRefreshLoopActive) break;
+                if (typeof window.refreshAllVillages === 'function') {
+                    await window.refreshAllVillages();
+                } else if (typeof window.getInfo === 'function') {
+                    await window.getInfo();
+                }
+            }
+            this.updateAutoRefreshStatus();
+        };
+        loop();
+    }
+
+    stopAutoRefreshLoop() {
+        this.autoRefreshLoopActive = false;
+        this.updateAutoRefreshStatus();
+    }
+
+    updateAutoRefreshStatus() {
+        const status = document.getElementById('autoRefreshStatus');
+        const btn = document.getElementById('autoRefreshToggleBtn');
+        if (this.autoRefreshLoopActive) {
+            status.textContent = 'Running';
+            btn.textContent = 'Stop';
+        } else {
+            status.textContent = 'Stopped';
+            btn.textContent = 'Start';
+        }
     }
 } 
