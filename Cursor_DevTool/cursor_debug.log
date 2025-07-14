@@ -1,0 +1,35 @@
+{"category":"Console","data":{"text":"Hello from Cursor DevTool!","timestamp":"2025-07-14T09:08:48.067Z","source":"console"},"timestamp":"2025-07-14T09:08:48.069Z"}
+{"category":"Console","data":{"text":"Current URL: chrome://new-tab-page/","timestamp":"2025-07-14T09:08:48.089Z","source":"console"},"timestamp":"2025-07-14T09:08:48.089Z"}
+{"category":"Console","data":{"text":"Page title: New Tab","timestamp":"2025-07-14T09:08:48.095Z","source":"console"},"timestamp":"2025-07-14T09:08:48.095Z"}
+{"category":"Execute","data":{"expression":"\n                console.log('Hello from Cursor DevTool!');\n                console.log('Current URL:', window.location.href);\n                console.log('Page title:', document.title);\n            ","timestamp":"2025-07-14T09:08:48.101Z"},"timestamp":"2025-07-14T09:08:48.101Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:08:53.078Z"},"timestamp":"2025-07-14T09:08:53.078Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:08:58.081Z"},"timestamp":"2025-07-14T09:08:58.081Z"}
+{"category":"Network","data":{"id":"26364.55","status":200,"url":"chrome://resources/css/text_defaults_md.css","timestamp":1876102.519737,"type":"response"},"timestamp":"2025-07-14T09:09:02.505Z"}
+{"category":"Network","data":{"id":"26364.56","status":200,"url":"chrome://theme/colors.css?sets=ui,chrome","timestamp":1876102.520182,"type":"response"},"timestamp":"2025-07-14T09:09:02.518Z"}
+{"category":"Network","data":{"id":"26364.57","status":200,"url":"chrome://new-tab-page/shared_vars.css","timestamp":1876102.520916,"type":"response"},"timestamp":"2025-07-14T09:09:02.520Z"}
+{"category":"Network","data":{"id":"26364.54","status":200,"url":"chrome://new-tab-page/","timestamp":1876102.52497,"type":"response"},"timestamp":"2025-07-14T09:09:02.526Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:09:03.085Z"},"timestamp":"2025-07-14T09:09:03.085Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:09:08.093Z"},"timestamp":"2025-07-14T09:09:08.093Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:09:13.104Z"},"timestamp":"2025-07-14T09:09:13.104Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:09:18.108Z"},"timestamp":"2025-07-14T09:09:18.108Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:22.254Z"},"timestamp":"2025-07-14T09:19:22.255Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:27.263Z"},"timestamp":"2025-07-14T09:19:27.263Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:32.270Z"},"timestamp":"2025-07-14T09:19:32.270Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:37.282Z"},"timestamp":"2025-07-14T09:19:37.282Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:42.295Z"},"timestamp":"2025-07-14T09:19:42.295Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:47.306Z"},"timestamp":"2025-07-14T09:19:47.306Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:52.318Z"},"timestamp":"2025-07-14T09:19:52.318Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:19:57.332Z"},"timestamp":"2025-07-14T09:19:57.332Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:02.335Z"},"timestamp":"2025-07-14T09:20:02.335Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:39.458Z"},"timestamp":"2025-07-14T09:20:39.459Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:44.471Z"},"timestamp":"2025-07-14T09:20:44.471Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:49.482Z"},"timestamp":"2025-07-14T09:20:49.482Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:54.488Z"},"timestamp":"2025-07-14T09:20:54.488Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:20:59.501Z"},"timestamp":"2025-07-14T09:20:59.501Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:04.502Z"},"timestamp":"2025-07-14T09:21:04.503Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:09.514Z"},"timestamp":"2025-07-14T09:21:09.514Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:14.522Z"},"timestamp":"2025-07-14T09:21:14.522Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:19.531Z"},"timestamp":"2025-07-14T09:21:19.531Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:24.535Z"},"timestamp":"2025-07-14T09:21:24.535Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:29.543Z"},"timestamp":"2025-07-14T09:21:29.543Z"}
+{"category":"Performance","data":{"metrics":[],"timestamp":"2025-07-14T09:21:34.554Z"},"timestamp":"2025-07-14T09:21:34.554Z"}

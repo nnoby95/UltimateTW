@@ -1,0 +1,37 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cursor Chrome DevTools",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/Cursor_DevTool/Cursor_Chrome_DevTools_Integration.js",
+            "cwd": "${workspaceFolder}/Cursor_DevTool",
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "outputCapture": "std"
+        },
+        {
+            "name": "Debug TribalWars Scripts",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/AutoBuild/main.user.js",
+            "cwd": "${workspaceFolder}/AutoBuild",
+            "console": "integratedTerminal",
+            "env": {
+                "NODE_ENV": "development",
+                "TRIBALWARS_DEBUG": "true"
+            }
+        },
+        {
+            "name": "Attach to Chrome",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}",
+            "urlFilter": "*://*.tribalwars.net/*"
+        }
+    ]
+} 
