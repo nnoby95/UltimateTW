@@ -1,0 +1,564 @@
+/*
+ * DOM SCRAPING TUTORIAL FOR TRIBAL WARS
+ * =====================================
+ * Method: Fetch game pages → Parse HTML → Extract data
+ * Why it works: Mimics normal user browsing behavior
+ */
+
+// =============================================================================
+// CORE TECHNIQUE: The Universal Pattern
+// =============================================================================
+
+async function scrapePage(url) {
+    try {
+        // Step 1: Fetch the page (like clicking a link)
+        const response = await fetch(url);
+        const html = await response.text();
+        
+        // Step 2: Parse HTML into searchable DOM
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Step 3: Extract data using CSS selectors
+        return doc; // Return parsed document
+        
+    } catch (error) {
+        console.error('Scraping failed:', error);
+        return null;
+    }
+}
+
+// =============================================================================
+// EXAMPLE 1: GET TROOP COUNTS
+// =============================================================================
+
+async function getTroops(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
+    const doc = await scrapePage(url);
+    
+    if (!doc) return null;
+    
+    // Find the "total" row (bold text)
+    const totalRow = doc.querySelector('tr[style*="font-weight: bold"]');
+    const cells = totalRow.querySelectorAll('.unit-item');
+    
+    const units = ['spear', 'sword', 'axe', 'spy', 'light', 'heavy', 'ram', 'catapult', 'snob', 'militia'];
+    const troops = {};
+    
+    units.forEach((unit, i) => {
+        troops[unit] = parseInt(cells[i]?.textContent || '0');
+    });
+    
+    return troops;
+}
+
+// =============================================================================
+// EXAMPLE 2: GET VILLAGE RESOURCES
+// =============================================================================
+
+async function getResources(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview`;
+    const doc = await scrapePage(url);
+    
+    if (!doc) return null;
+    
+    return {
+        wood: parseInt(doc.querySelector('#wood')?.textContent || '0'),
+        stone: parseInt(doc.querySelector('#stone')?.textContent || '0'),  
+        iron: parseInt(doc.querySelector('#iron')?.textContent || '0'),
+        storage: parseInt(doc.querySelector('#storage')?.textContent || '0'),
+        population: parseInt(doc.querySelector('#pop_current_label')?.textContent || '0'),
+        popMax: parseInt(doc.querySelector('#pop_max_label')?.textContent || '0')
+    };
+}
+
+// =============================================================================
+// EXAMPLE 3: GET BUILDING LEVELS
+// =============================================================================
+
+async function getBuildings(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview_villages&mode=buildings`;
+    const doc = await scrapePage(url);
+    
+    if (!doc) return null;
+    
+    const buildings = {};
+    
+    // Find building rows and extract levels
+    const buildingRows = doc.querySelectorAll('#buildings_table tbody tr');
+    
+    buildingRows.forEach(row => {
+        const buildingLink = row.querySelector('a[href*="screen="]');
+        if (!buildingLink) return;
+        
+        // Extract building type from link
+        const buildingType = buildingLink.href.match(/screen=(\w+)/)?.[1];
+        
+        // Extract level from row
+        const levelCell = row.querySelector('.level');
+        const level = parseInt(levelCell?.textContent || '0');
+        
+        if (buildingType) {
+            buildings[buildingType] = level;
+        }
+    });
+    
+    return buildings;
+}
+
+// =============================================================================
+// EXAMPLE 4: GET INCOMING ATTACKS
+// =============================================================================
+
+async function getIncomingAttacks(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview_villages&mode=incomings`;
+    const doc = await scrapePage(url);
+    
+    if (!doc) return null;
+    
+    const attacks = [];
+    
+    // Find attack rows
+    const attackRows = doc.querySelectorAll('tr[id*="incoming_"]');
+    
+    attackRows.forEach(row => {
+        const originCell = row.querySelector('td:first-child');
+        const arrivalCell = row.querySelector('td:nth-child(2)');
+        
+        if (originCell && arrivalCell) {
+            attacks.push({
+                origin: originCell.textContent.trim(),
+                arrival: arrivalCell.textContent.trim(),
+                isAttack: row.querySelector('img[src*="att."]') !== null
+            });
+        }
+    });
+    
+    return attacks;
+}
+
+// =============================================================================
+// EXAMPLE 5: GET MARKET INFORMATION
+// =============================================================================
+
+async function getMarketCapacity(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=market`;
+    const doc = await scrapePage(url);
+    
+    if (!doc) return null;
+    
+    // Extract trader information
+    const traderInfo = doc.querySelector('#market_merchant_capacity');
+    const availableTraders = doc.querySelector('#market_merchant_available_count');
+    
+    return {
+        capacity: parseInt(traderInfo?.textContent?.match(/\d+/)?.[0] || '0'),
+        available: parseInt(availableTraders?.textContent || '0'),
+        total: parseInt(doc.querySelector('#market_merchant_total')?.textContent || '0')
+    };
+}
+
+// =============================================================================
+// ADVANCED: SCRAPE MULTIPLE VILLAGES AT ONCE
+// =============================================================================
+
+async function scrapeAllVillages(dataType = 'troops') {
+    // Get list of all your villages
+    const villageListUrl = `/game.php?village=${game_data.village.id}&screen=overview_villages`;
+    const doc = await scrapePage(villageListUrl);
+    
+    if (!doc) return null;
+    
+    // Extract village IDs from village links
+    const villageLinks = doc.querySelectorAll('a[href*="info_village"]');
+    const villageIds = [];
+    
+    villageLinks.forEach(link => {
+        const villageId = link.href.match(/id=(\d+)/)?.[1];
+        if (villageId && !villageIds.includes(villageId)) {
+            villageIds.push(villageId);
+        }
+    });
+    
+    // Scrape data for each village
+    const results = {};
+    
+    for (const villageId of villageIds) {
+        console.log(`Scraping village ${villageId}...`);
+        
+        switch (dataType) {
+            case 'troops':
+                results[villageId] = await getTroops(villageId);
+                break;
+            case 'resources':
+                results[villageId] = await getResources(villageId);
+                break;
+            case 'buildings':
+                results[villageId] = await getBuildings(villageId);
+                break;
+        }
+        
+        // Rate limiting: Wait between requests
+        await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
+    }
+    
+    return results;
+}
+
+// =============================================================================
+// HELPER: CSS SELECTOR CHEAT SHEET
+// =============================================================================
+
+/*
+COMMON CSS SELECTORS FOR TRIBAL WARS:
+
+Element Selection:
+- doc.querySelector('#wood')           // ID selector
+- doc.querySelector('.unit-item')      // Class selector  
+- doc.querySelector('tr')              // Tag selector
+- doc.querySelectorAll('td')           // Multiple elements
+
+Attribute Selectors:
+- doc.querySelector('[href*="attack"]')     // Contains "attack"
+- doc.querySelector('[class*="village"]')   // Contains "village"
+- doc.querySelector('[id^="incoming_"]')    // Starts with "incoming_"
+
+Combining Selectors:
+- doc.querySelector('tr.selected td')       // <td> inside <tr class="selected">
+- doc.querySelector('a[href*="id=123"]')    // Link containing id=123
+- doc.querySelector('tr:nth-child(2)')      // Second <tr> element
+
+Text Content:
+- element.textContent                       // Get text content
+- element.innerText                         // Get visible text
+- parseInt(element.textContent)             // Convert to number
+*/
+
+// =============================================================================
+// USAGE EXAMPLES
+// =============================================================================
+
+/*
+// Check your current village troops
+getTroops().then(troops => {
+    console.log('My troops:', troops);
+    console.log('Light cavalry:', troops.light);
+});
+
+// Check resources
+getResources().then(res => {
+    console.log('Wood:', res.wood);
+    console.log('Storage:', res.storage);
+});
+
+// Check specific village 
+getTroops('16404').then(troops => {
+    console.log('Village 16404 troops:', troops);
+});
+
+// Scrape all villages
+scrapeAllVillages('troops').then(data => {
+    Object.keys(data).forEach(villageId => {
+        console.log(`Village ${villageId}:`, data[villageId]);
+    });
+});
+
+// Check for incoming attacks
+getIncomingAttacks().then(attacks => {
+    if (attacks.length > 0) {
+        console.log('INCOMING ATTACKS!', attacks);
+    }
+});
+*/
+
+
+// =============================================================================
+// WHY THIS METHOD IS PERFECT
+// =============================================================================
+
+/*
+✅ UNDETECTABLE: Looks like normal browsing
+✅ RELIABLE: Uses actual game HTML structure  
+✅ FUTURE-PROOF: Adapts to game updates automatically
+✅ NO REVERSE ENGINEERING: No need to understand game APIs
+✅ WORKS EVERYWHERE: Any game screen from any location
+✅ SAFE: Much slower than human clicking
+✅ SIMPLE: Easy to understand and modify
+
+❌ Only downside: Slightly slower than direct API calls
+   (But APIs don't exist anyway!)
+*/
+
+/*
+ * SAFE DOM SCRAPING WITH RATE LIMITING
+ * ====================================
+ * Prevents simultaneous requests and adds human-like delays
+ */
+
+// =============================================================================
+// GLOBAL RATE LIMITING SYSTEM
+// =============================================================================
+
+let isRequestActive = false;
+let lastRequestTime = 0;
+const MIN_DELAY_BETWEEN_REQUESTS = 5000; // 5 seconds minimum
+
+// Safe wrapper for all requests
+async function safeRequest(url) {
+    // Wait if another request is active
+    while (isRequestActive) {
+        await sleep(100); // Check every 100ms
+    }
+    
+    // Ensure minimum time between requests
+    const timeSinceLastRequest = Date.now() - lastRequestTime;
+    if (timeSinceLastRequest < MIN_DELAY_BETWEEN_REQUESTS) {
+        const waitTime = MIN_DELAY_BETWEEN_REQUESTS - timeSinceLastRequest;
+        console.log(`Waiting ${waitTime}ms before next request...`);
+        await sleep(waitTime);
+    }
+    
+    // Mark request as active
+    isRequestActive = true;
+    lastRequestTime = Date.now();
+    
+    try {
+        console.log(`Fetching: ${url}`);
+        const response = await fetch(url);
+        const html = await response.text();
+        
+        // Add small random delay to look more human
+        await sleep(1000 + Math.random() * 2000); // 1-3 seconds
+        
+        const parser = new DOMParser();
+        return parser.parseFromString(html, 'text/html');
+        
+    } catch (error) {
+        console.error('Request failed:', error);
+        return null;
+    } finally {
+        // Always release the lock
+        isRequestActive = false;
+    }
+}
+
+// Helper sleep function
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// =============================================================================
+// SAFE SCRAPING FUNCTIONS
+// =============================================================================
+
+async function getTroops(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
+    const doc = await safeRequest(url);
+    
+    if (!doc) return null;
+    
+    const totalRow = doc.querySelector('tr[style*="font-weight: bold"]');
+    if (!totalRow) return null;
+    
+    const cells = totalRow.querySelectorAll('.unit-item');
+    const units = ['spear', 'sword', 'axe', 'spy', 'light', 'heavy', 'ram', 'catapult', 'snob', 'militia'];
+    const troops = {};
+    
+    units.forEach((unit, i) => {
+        troops[unit] = parseInt(cells[i]?.textContent || '0');
+    });
+    
+    return troops;
+}
+
+async function getResources(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview`;
+    const doc = await safeRequest(url);
+    
+    if (!doc) return null;
+    
+    return {
+        wood: parseInt(doc.querySelector('#wood')?.textContent || '0'),
+        stone: parseInt(doc.querySelector('#stone')?.textContent || '0'),
+        iron: parseInt(doc.querySelector('#iron')?.textContent || '0'),
+        storage: parseInt(doc.querySelector('#storage')?.textContent || '0'),
+        population: parseInt(doc.querySelector('#pop_current_label')?.textContent || '0'),
+        popMax: parseInt(doc.querySelector('#pop_max_label')?.textContent || '0')
+    };
+}
+
+async function getBuildings(villageId = game_data.village.id) {
+    const url = `/game.php?village=${villageId}&screen=overview_villages&mode=buildings`;
+    const doc = await safeRequest(url);
+    
+    if (!doc) return null;
+    
+    const buildings = {};
+    
+    // Extract building levels from the overview table
+    const buildingRows = doc.querySelectorAll('tbody tr');
+    
+    buildingRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 2) return;
+        
+        const buildingName = cells[0]?.textContent?.trim();
+        const levelText = cells[1]?.textContent?.trim();
+        
+        if (buildingName && levelText) {
+            const level = parseInt(levelText) || 0;
+            buildings[buildingName.toLowerCase()] = level;
+        }
+    });
+    
+    return buildings;
+}
+
+// =============================================================================
+// SAFE MULTI-VILLAGE OPERATIONS
+// =============================================================================
+
+async function getAllVillageData(villageIds) {
+    const results = {};
+    
+    console.log(`Starting to scrape ${villageIds.length} villages...`);
+    
+    for (let i = 0; i < villageIds.length; i++) {
+        const villageId = villageIds[i];
+        console.log(`Processing village ${i + 1}/${villageIds.length}: ${villageId}`);
+        
+        try {
+            // Get troops (first request)
+            const troops = await getTroops(villageId);
+            
+            // Get resources (second request - automatically delayed)
+            const resources = await getResources(villageId);
+            
+            // Get buildings (third request - automatically delayed)
+            const buildings = await getBuildings(villageId);
+            
+            results[villageId] = {
+                troops,
+                resources,
+                buildings,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            console.log(`Village ${villageId} complete!`);
+            
+        } catch (error) {
+            console.error(`Failed to scrape village ${villageId}:`, error);
+            results[villageId] = { error: error.message };
+        }
+    }
+    
+    console.log('All villages scraped successfully!');
+    return results;
+}
+
+// =============================================================================
+// PRACTICAL USAGE EXAMPLES
+// =============================================================================
+
+// Example 1: Check current village safely
+async function quickCheck() {
+    console.log('Getting current village data...');
+    
+    const troops = await getTroops();
+    console.log('Troops:', troops);
+    
+    // Automatically waits 5+ seconds before next request
+    const resources = await getResources();
+    console.log('Resources:', resources);
+    
+    return { troops, resources };
+}
+
+// Example 2: Monitor multiple villages
+async function monitorAllVillages() {
+    const villageIds = ['16404', '16405', '16406']; // Your village IDs
+    
+    const data = await getAllVillageData(villageIds);
+    
+    // Process results
+    Object.keys(data).forEach(villageId => {
+        const village = data[villageId];
+        if (village.error) {
+            console.log(`Village ${villageId}: ERROR - ${village.error}`);
+        } else {
+            console.log(`Village ${villageId}:`);
+            console.log(`  Troops: ${JSON.stringify(village.troops)}`);
+            console.log(`  Resources: ${village.resources.wood}/${village.resources.stone}/${village.resources.iron}`);
+        }
+    });
+    
+    return data;
+}
+
+// Example 3: Scheduled monitoring (runs every hour)
+function startMonitoring() {
+    console.log('Starting village monitoring...');
+    
+    const monitor = async () => {
+        try {
+            console.log('--- Hourly Check ---');
+            await quickCheck();
+        } catch (error) {
+            console.error('Monitoring error:', error);
+        }
+    };
+    
+    // Run immediately, then every hour
+    monitor();
+    setInterval(monitor, 60 * 60 * 1000); // 1 hour
+}
+
+// =============================================================================
+// USAGE INSTRUCTIONS
+// =============================================================================
+
+/*
+// Run from ANY game page:
+
+// Single village check
+getTroops().then(troops => console.log('My troops:', troops));
+
+// Multiple data types (automatically spaced 5+ seconds apart)
+quickCheck().then(data => console.log('Village data:', data));
+
+// Multiple villages (safely processes all with delays)
+monitorAllVillages().then(data => console.log('All village data:', data));
+
+// Start continuous monitoring
+startMonitoring();
+*/
+
+// =============================================================================
+// SAFETY FEATURES EXPLAINED
+// =============================================================================
+
+/*
+🔒 SAFETY FEATURES:
+
+1. GLOBAL LOCK: Only one request at a time
+   - Prevents simultaneous page fetches
+   - Other requests wait their turn
+
+2. MINIMUM DELAYS: 5+ seconds between requests
+   - Looks like slow human browsing
+   - Server sees normal page navigation
+
+3. RANDOM DELAYS: 1-3 second processing time
+   - Mimics human reading time
+   - Varies timing to avoid patterns
+
+4. ERROR HANDLING: Graceful failure
+   - Doesn't crash on network errors
+   - Always releases locks properly
+
+5. LOGGING: Track what's happening
+   - See which villages are being processed
+   - Monitor timing and delays
+
+RESULT: Looks like the slowest, most careful human player ever! 🐌
+*/

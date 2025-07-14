@@ -1,0 +1,2121 @@
+{
+    "tribalWarsLibraries": {
+      "metadata": {
+        "version": "1.2.3-beta",
+        "lastUpdated": "2024-06-23",
+        "author": "RedAlert (redalert_tw)",
+        "purpose": "Comprehensive JavaScript libraries for Tribal Wars game automation and analysis",
+        "gameInfo": {
+          "name": "Tribal Wars",
+          "type": "Medieval strategy browser game",
+          "mechanics": {
+            "resources": ["wood", "stone", "iron"],
+            "buildings": ["main", "barracks", "stable", "garage", "church", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+            "units": ["spear", "sword", "axe", "archer", "spy", "light", "marcher", "heavy", "ram", "catapult", "knight", "snob"],
+            "coordinates": "x|y format (e.g., 123|456)",
+            "population": "Limited by farm levels",
+            "storage": "Limited by warehouse levels"
+          }
+        }
+      },
+      
+      "libraries": {
+        "twSDK": {
+          "name": "Tribal Wars JavaScript SDK",
+          "purpose": "Comprehensive framework for UI, data access, world interaction, and utilities",
+          "namespace": "window.twSDK",
+          "initialization": {
+            "required": true,
+            "async": true,
+            "syntax": "await twSDK.init(config)",
+            "config": {
+              "scriptData": {
+                "name": "string - Script name",
+                "version": "string - Version number",
+                "author": "string - Author name",
+                "helpLink": "string - Help URL"
+              },
+              "translations": "object - Multi-language support",
+              "allowedMarkets": "array - Allowed game markets/worlds",
+              "allowedScreens": "array - Allowed game screens",
+              "allowedModes": "array - Allowed game modes", 
+              "isDebug": "boolean - Debug mode",
+              "enableCountApi": "boolean - Usage statistics"
+            },
+            "example": "await twSDK.init({\n  scriptData: {\n    name: 'My Script',\n    version: '1.0.0',\n    author: 'Developer'\n  },\n  allowedMarkets: ['en', 'de'],\n  allowedScreens: ['overview']\n});"
+          },
+          
+          "constants": {
+            "buildingsList": {
+              "type": "array",
+              "value": ["main", "barracks", "stable", "garage", "church", "church_f", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+              "description": "Complete list of all building types in the game"
+            },
+            "unitsFarmSpace": {
+              "type": "object",
+              "description": "Population space required for each unit type",
+              "values": {
+                "spear": 1, "sword": 1, "axe": 1, "archer": 1, "spy": 2,
+                "light": 4, "marcher": 5, "heavy": 6, "ram": 5, 
+                "catapult": 8, "knight": 10, "snob": 100
+              }
+            },
+            "resPerHour": {
+              "type": "object",
+              "description": "Resource production per hour by building level",
+              "range": "Level 0-30"
+            },
+            "coordsRegex": {
+              "type": "RegExp",
+              "value": "/\\d{1,3}\\|\\d{1,3}/g",
+              "description": "Regular expression to match coordinate patterns (x|y)"
+            }
+          },
+          
+          "methods": {
+            "worldDataAPI": {
+              "signature": "worldDataAPI(entity)",
+              "async": true,
+              "description": "Fetch and cache world data for villages, players, tribes, or conquests",
+              "parameters": {
+                "entity": {
+                  "type": "string",
+                  "required": true,
+                  "values": ["village", "player", "ally", "conquer"],
+                  "description": "Type of world data to fetch"
+                }
+              },
+              "returns": {
+                "type": "array",
+                "description": "Array of arrays containing entity data",
+                "format": {
+                  "village": "[[villageId, villageName, x, y, playerId, points, type], ...]",
+                  "player": "[[playerId, playerName, tribeId, villages, points, rank], ...]",
+                  "ally": "[[tribeId, tribeName, tribeTag, players, villages, points, allPoints, rank], ...]",
+                  "conquer": "[[villageId, timestamp, newPlayerId, oldPlayerId, oldTribeId, newTribeId, points], ...]"
+                }
+              },
+              "caching": "Automatic 1-hour cache in IndexedDB",
+              "examples": [
+                {
+                  "description": "Get all villages",
+                  "code": "const villages = await twSDK.worldDataAPI('village');\nconsole.log(`Found ${villages.length} villages`);"
+                },
+                {
+                  "description": "Get player data",
+                  "code": "const players = await twSDK.worldDataAPI('player');\nconst topPlayer = players[0]; // Rank 1 player"
+                }
+              ],
+              "errorHandling": "throws Error if entity type invalid or fetch fails",
+              "category": "dataAccess"
+            },
+            
+            "calculateDistance": {
+              "signature": "calculateDistance(from, to)",
+              "description": "Calculate Euclidean distance between two coordinates",
+              "parameters": {
+                "from": {
+                  "type": "string",
+                  "required": true,
+                  "format": "x|y",
+                  "example": "123|456",
+                  "description": "Starting coordinate"
+                },
+                "to": {
+                  "type": "string", 
+                  "required": true,
+                  "format": "x|y",
+                  "example": "789|012",
+                  "description": "Target coordinate"
+                }
+              },
+              "returns": {
+                "type": "number",
+                "description": "Distance in game field units (decimal)",
+                "formula": "Math.sqrt((x2-x1)² + (y2-y1)²)"
+              },
+              "examples": [
+                {
+                  "description": "Calculate distance between two villages",
+                  "code": "const distance = twSDK.calculateDistance('123|456', '789|012');\nconsole.log(`Distance: ${distance.toFixed(2)} fields`);"
+                }
+              ],
+              "relatedMethods": ["calculateDistanceFromCurrentVillage", "calculateTimesByDistance"],
+              "category": "calculations"
+            },
+            
+            "calculateDistanceFromCurrentVillage": {
+              "signature": "calculateDistanceFromCurrentVillage(coord)",
+              "description": "Calculate distance from current village to target coordinate",
+              "parameters": {
+                "coord": {
+                  "type": "string",
+                  "required": true,
+                  "format": "x|y",
+                  "example": "123|456",
+                  "description": "Target coordinate"
+                }
+              },
+              "returns": {
+                "type": "number",
+                "description": "Distance from current village in game fields"
+              },
+              "dependencies": "Requires game_data.village.x and game_data.village.y",
+              "examples": [
+                {
+                  "description": "Find distance to target",
+                  "code": "const distance = twSDK.calculateDistanceFromCurrentVillage('123|456');\nif (distance <= 20) {\n  console.log('Target within reasonable range');\n}"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "calculateTimesByDistance": {
+              "signature": "calculateTimesByDistance(distance)",
+              "async": true,
+              "description": "Calculate travel times for all unit types at given distance",
+              "parameters": {
+                "distance": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Distance in game fields"
+                }
+              },
+              "returns": {
+                "type": "array",
+                "description": "Array of travel time strings in HH:MM:SS format for each unit type",
+                "order": "Same order as game_data.units array"
+              },
+              "dependencies": ["getWorldUnitInfo", "getWorldConfig"],
+              "examples": [
+                {
+                  "description": "Get travel times for 15.5 field distance",
+                  "code": "const times = await twSDK.calculateTimesByDistance(15.5);\nconsole.log(`Spear time: ${times[0]}, LC time: ${times[4]}`);"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "getCoordFromString": {
+              "signature": "getCoordFromString(string)",
+              "description": "Extract first coordinate from a text string",
+              "parameters": {
+                "string": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Text containing coordinates"
+                }
+              },
+              "returns": {
+                "type": "string|array",
+                "description": "First coordinate found, or empty array if none"
+              },
+              "examples": [
+                {
+                  "description": "Extract coordinate from report text",
+                  "code": "const coord = twSDK.getCoordFromString('Attack on village (123|456) was successful');\nconsole.log(coord); // '123|456'"
+                }
+              ],
+              "relatedMethods": ["getLastCoordFromString"],
+              "category": "parsing"
+            },
+            
+            "getLastCoordFromString": {
+              "signature": "getLastCoordFromString(string)",
+              "description": "Extract last coordinate from a text string",
+              "parameters": {
+                "string": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Text containing coordinates"
+                }
+              },
+              "returns": {
+                "type": "string|array",
+                "description": "Last coordinate found, or empty array if none"
+              },
+              "examples": [
+                {
+                  "description": "Get destination from command text",
+                  "code": "const dest = twSDK.getLastCoordFromString('From (111|222) to (333|444)');\nconsole.log(dest); // '333|444'"
+                }
+              ],
+              "category": "parsing"
+            },
+            
+            "getContinentByCoord": {
+              "signature": "getContinentByCoord(coord)",
+              "description": "Get continent number from coordinate",
+              "parameters": {
+                "coord": {
+                  "type": "string",
+                  "required": true,
+                  "format": "x|y",
+                  "example": "123|456",
+                  "description": "Coordinate to analyze"
+                }
+              },
+              "returns": {
+                "type": "string",
+                "description": "Two-digit continent number",
+                "format": "YX where Y=y/100, X=x/100"
+              },
+              "examples": [
+                {
+                  "description": "Get continent for coordinate",
+                  "code": "const continent = twSDK.getContinentByCoord('123|456');\nconsole.log(`Continent K${continent}`); // 'Continent K41'"
+                }
+              ],
+              "category": "geography"
+            },
+            
+            "filterVillagesByPlayerIds": {
+              "signature": "filterVillagesByPlayerIds(playerIds, villages)",
+              "description": "Filter village list to only include villages owned by specific players",
+              "parameters": {
+                "playerIds": {
+                  "type": "array",
+                  "required": true,
+                  "description": "Array of player IDs to include",
+                  "itemType": "number"
+                },
+                "villages": {
+                  "type": "array", 
+                  "required": true,
+                  "description": "Village data array from worldDataAPI('village')"
+                }
+              },
+              "returns": {
+                "type": "array",
+                "description": "Array of coordinate strings owned by specified players",
+                "itemFormat": "x|y"
+              },
+              "examples": [
+                {
+                  "description": "Get all villages owned by specific players",
+                  "code": "const villages = await twSDK.worldDataAPI('village');\nconst playerVillages = twSDK.filterVillagesByPlayerIds([123, 456], villages);\nconsole.log(`Found ${playerVillages.length} enemy villages`);"
+                }
+              ],
+              "category": "dataProcessing"
+            },
+            
+            "getDestinationCoordinates": {
+              "signature": "getDestinationCoordinates(config, tribes, players, villages)",
+              "description": "Advanced coordinate filtering with multiple criteria",
+              "parameters": {
+                "config": {
+                  "type": "object",
+                  "required": true,
+                  "properties": {
+                    "playersInput": "string - Comma-separated player names",
+                    "tribesInput": "string - Comma-separated tribe names", 
+                    "continents": "string - Comma-separated continent numbers",
+                    "minCoord": "string - Minimum coordinate boundary",
+                    "maxCoord": "string - Maximum coordinate boundary",
+                    "distCenter": "string - Maximum distance from center",
+                    "center": "string - Center coordinate for distance filter",
+                    "excludedPlayers": "string - Players to exclude",
+                    "enable20To1Limit": "boolean - Apply 20:1 point rule",
+                    "minPoints": "string - Minimum village points",
+                    "maxPoints": "string - Maximum village points"
+                  }
+                },
+                "tribes": {
+                  "type": "array",
+                  "required": true,
+                  "description": "Tribe data from worldDataAPI('ally')"
+                },
+                "players": {
+                  "type": "array",
+                  "required": true, 
+                  "description": "Player data from worldDataAPI('player')"
+                },
+                "villages": {
+                  "type": "array",
+                  "required": true,
+                  "description": "Village data from worldDataAPI('village')"
+                }
+              },
+              "returns": {
+                "type": "array",
+                "description": "Filtered coordinate strings matching all criteria"
+              },
+              "examples": [
+                {
+                  "description": "Find enemy targets near current village",
+                  "code": "const config = {\n  playersInput: 'Enemy1,Enemy2',\n  distCenter: '20',\n  center: `${game_data.village.x}|${game_data.village.y}`,\n  minPoints: '1000',\n  maxPoints: '8000'\n};\nconst targets = twSDK.getDestinationCoordinates(config, tribes, players, villages);"
+                }
+              ],
+              "category": "dataProcessing"
+            },
+            
+            "renderFixedWidget": {
+              "signature": "renderFixedWidget(body, id, mainClass, customStyle, width, customName)",
+              "description": "Create floating widget with draggable functionality",
+              "parameters": {
+                "body": {
+                  "type": "string",
+                  "required": true,
+                  "description": "HTML content for widget body"
+                },
+                "id": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Unique DOM element ID"
+                },
+                "mainClass": {
+                  "type": "string", 
+                  "required": true,
+                  "description": "CSS class prefix for styling"
+                },
+                "customStyle": {
+                  "type": "string",
+                  "required": false,
+                  "description": "Additional CSS styles"
+                },
+                "width": {
+                  "type": "string",
+                  "required": false,
+                  "default": "360px",
+                  "description": "Widget width (CSS format)"
+                },
+                "customName": {
+                  "type": "string",
+                  "required": false,
+                  "default": "scriptData.name",
+                  "description": "Widget title override"
+                }
+              },
+              "returns": {
+                "type": "void",
+                "description": "Renders widget to DOM"
+              },
+              "features": ["Draggable", "Close button", "Responsive design"],
+              "examples": [
+                {
+                  "description": "Create a floating calculator widget",
+                  "code": "const widgetHTML = '<div><h4>Calculator</h4><button>Calculate</button></div>';\ntwSDK.renderFixedWidget(\n  widgetHTML,\n  'myCalculator', \n  'calc',\n  '.calc { background: #f0f0f0; }',\n  '400px',\n  'Resource Calculator'\n);"
+                }
+              ],
+              "category": "ui"
+            },
+            
+            "renderBoxWidget": {
+              "signature": "renderBoxWidget(body, id, mainClass, customStyle)",
+              "description": "Create inline widget in content area",
+              "parameters": {
+                "body": {
+                  "type": "string",
+                  "required": true,
+                  "description": "HTML content for widget body"
+                },
+                "id": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Unique DOM element ID"
+                },
+                "mainClass": {
+                  "type": "string",
+                  "required": true, 
+                  "description": "CSS class prefix for styling"
+                },
+                "customStyle": {
+                  "type": "string",
+                  "required": false,
+                  "description": "Additional CSS styles"
+                }
+              },
+              "returns": {
+                "type": "void",
+                "description": "Renders widget to content container"
+              },
+              "examples": [
+                {
+                  "description": "Create inline results display",
+                  "code": "const resultsHTML = '<table class=\"ra-table\"><tr><td>Results here</td></tr></table>';\ntwSDK.renderBoxWidget(resultsHTML, 'results', 'resultBox', '');"
+                }
+              ],
+              "category": "ui"
+            },
+            
+            "buildUnitsPicker": {
+              "signature": "buildUnitsPicker(selectedUnits, unitsToIgnore, type)",
+              "description": "Generate HTML for unit selection interface",
+              "parameters": {
+                "selectedUnits": {
+                  "type": "array",
+                  "required": false,
+                  "default": "[]",
+                  "description": "Array of unit names to pre-select"
+                },
+                "unitsToIgnore": {
+                  "type": "array", 
+                  "required": true,
+                  "description": "Array of unit names to exclude from picker"
+                },
+                "type": {
+                  "type": "string",
+                  "required": false,
+                  "default": "checkbox",
+                  "values": ["checkbox", "radio"],
+                  "description": "Input type for selection"
+                }
+              },
+              "returns": {
+                "type": "string",
+                "description": "HTML table with unit selection inputs"
+              },
+              "examples": [
+                {
+                  "description": "Create unit picker with spear and sword pre-selected",
+                  "code": "const unitPicker = twSDK.buildUnitsPicker(\n  ['spear', 'sword'], // pre-selected\n  ['knight', 'snob'], // exclude these\n  'checkbox'\n);\ndocument.getElementById('unitSelection').innerHTML = unitPicker;"
+                }
+              ],
+              "category": "ui"
+            },
+            
+            "formatAsNumber": {
+              "signature": "formatAsNumber(number)",
+              "description": "Format number with thousands separators (German format)",
+              "parameters": {
+                "number": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Number to format"
+                }
+              },
+              "returns": {
+                "type": "string",
+                "description": "Formatted number string with dots as thousands separators"
+              },
+              "examples": [
+                {
+                  "description": "Format large numbers for display",
+                  "code": "const formatted = twSDK.formatAsNumber(1234567);\nconsole.log(formatted); // '1.234.567'"
+                }
+              ],
+              "category": "formatting"
+            },
+            
+            "secondsToHms": {
+              "signature": "secondsToHms(timestamp)",
+              "description": "Convert seconds to HH:MM:SS time format",
+              "parameters": {
+                "timestamp": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Time in seconds"
+                }
+              },
+              "returns": {
+                "type": "string",
+                "description": "Time in HH:MM:SS format"
+              },
+              "examples": [
+                {
+                  "description": "Convert build time to readable format",
+                  "code": "const timeString = twSDK.secondsToHms(3661);\nconsole.log(timeString); // '01:01:01'"
+                }
+              ],
+              "category": "formatting"
+            },
+            
+            "copyToClipboard": {
+              "signature": "copyToClipboard(string)",
+              "description": "Copy text to system clipboard",
+              "parameters": {
+                "string": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Text to copy"
+                }
+              },
+              "returns": {
+                "type": "void"
+              },
+              "examples": [
+                {
+                  "description": "Copy coordinates to clipboard",
+                  "code": "twSDK.copyToClipboard('123|456');\nUI.SuccessMessage('Coordinates copied!');"
+                }
+              ],
+              "category": "utilities"
+            },
+            
+            "getServerDateTime": {
+              "signature": "getServerDateTime()",
+              "description": "Get current server date and time as formatted string",
+              "parameters": {},
+              "returns": {
+                "type": "string",
+                "format": "YYYY-MM-DD HH:MM:SS",
+                "description": "Current server time"
+              },
+              "examples": [
+                {
+                  "description": "Get current server time",
+                  "code": "const serverTime = twSDK.getServerDateTime();\nconsole.log(`Server time: ${serverTime}`);"
+                }
+              ],
+              "category": "time"
+            },
+            
+            "getServerDateTimeObject": {
+              "signature": "getServerDateTimeObject()",
+              "description": "Get current server time as Date object",
+              "parameters": {},
+              "returns": {
+                "type": "Date",
+                "description": "Current server time as Date object"
+              },
+              "examples": [
+                {
+                  "description": "Calculate future time",
+                  "code": "const now = twSDK.getServerDateTimeObject();\nconst futureTime = new Date(now.getTime() + 3600000); // +1 hour"
+                }
+              ],
+              "category": "time"
+            },
+            
+            "csvToArray": {
+              "signature": "csvToArray(strData, strDelimiter)",
+              "description": "Parse CSV data into 2D array",
+              "parameters": {
+                "strData": {
+                  "type": "string",
+                  "required": true,
+                  "description": "CSV data string"
+                },
+                "strDelimiter": {
+                  "type": "string",
+                  "required": false,
+                  "default": ",",
+                  "description": "Field delimiter"
+                }
+              },
+              "returns": {
+                "type": "array",
+                "description": "2D array of parsed CSV data"
+              },
+              "examples": [
+                {
+                  "description": "Parse CSV data",
+                  "code": "const csvData = 'name,age,city\\nJohn,25,NYC\\nJane,30,LA';\nconst parsed = twSDK.csvToArray(csvData);\nconsole.log(parsed[1]); // ['John', '25', 'NYC']"
+                }
+              ],
+              "category": "dataProcessing"
+            }
+          }
+        },
+        
+        "DSUtil": {
+          "name": "Dark Souls Utility / Building Calculator",
+          "purpose": "Specialized calculator for game mechanics, buildings, resources, and time calculations",
+          "namespace": "DSUtil",
+          "initialization": {
+            "required": false,
+            "configuration": {
+              "speed": "DSUtil.speed = game_data.speed || 1.0",
+              "datalvl": "DSUtil.datalvl = true",
+              "description": "Configure for current world settings"
+            },
+            "example": "DSUtil.speed = game_data.speed || 1.0;\nDSUtil.datalvl = true; // Use current village data"
+          },
+          
+          "properties": {
+            "speed": {
+              "type": "number",
+              "default": 1.6,
+              "description": "World speed multiplier for calculations"
+            },
+            "mineBaseProd": {
+              "type": "number", 
+              "default": 1,
+              "description": "Base mine production rate"
+            },
+            "bonusProd": {
+              "type": "number",
+              "default": 1,
+              "description": "Production bonus multiplier (1.2 = 20% bonus)"
+            },
+            "datalvl": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to use current village building levels"
+            }
+          },
+          
+          "buildingConfiguration": {
+            "description": "Complete building configuration data with costs, times, and requirements",
+            "structure": {
+              "buildingName": {
+                "max_level": "string - Maximum building level",
+                "min_level": "string - Minimum building level", 
+                "wood": "string - Base wood cost",
+                "stone": "string - Base stone cost",
+                "iron": "string - Base iron cost",
+                "pop": "string - Base population cost",
+                "wood_factor": "string - Cost multiplier per level",
+                "stone_factor": "string - Cost multiplier per level", 
+                "iron_factor": "string - Cost multiplier per level",
+                "pop_factor": "string - Population multiplier per level",
+                "build_time": "string - Base build time in seconds",
+                "build_time_factor": "string - Time multiplier per level"
+              }
+            }
+          },
+          
+          "methods": {
+            "buildCost": {
+              "signature": "buildCost(building, lvl, res)",
+              "description": "Calculate resource cost for building upgrade",
+              "parameters": {
+                "building": {
+                  "type": "string",
+                  "required": true,
+                  "values": ["main", "barracks", "stable", "garage", "church", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+                  "description": "Building type"
+                },
+                "lvl": {
+                  "type": "number",
+                  "required": true,
+                  "range": "1-30 (varies by building)",
+                  "description": "Target building level"
+                },
+                "res": {
+                  "type": "string",
+                  "required": false,
+                  "values": ["wood", "stone", "iron"],
+                  "description": "Specific resource, or omit for all resources"
+                }
+              },
+              "returns": {
+                "type": "number|array",
+                "description": "Cost for specific resource (number) or all resources [wood, stone, iron] (array)"
+              },
+              "formula": "baseCost * (costFactor^(level-1))",
+              "examples": [
+                {
+                  "description": "Get wood cost for main building level 15",
+                  "code": "const woodCost = DSUtil.buildCost('main', 15, 'wood');\nconsole.log(`Wood needed: ${woodCost}`);"
+                },
+                {
+                  "description": "Get all costs for barracks level 10",
+                  "code": "const [wood, stone, iron] = DSUtil.buildCost('barracks', 10);\nconsole.log(`Costs: ${wood}/${stone}/${iron}`);"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "buildCostSum": {
+              "signature": "buildCostSum(building, lvl)",
+              "description": "Calculate total resource cost (wood + stone + iron)",
+              "parameters": {
+                "building": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Building type"
+                },
+                "lvl": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Target building level"
+                }
+              },
+              "returns": {
+                "type": "number",
+                "description": "Sum of all resource costs"
+              },
+              "examples": [
+                {
+                  "description": "Get total cost for stable level 15",
+                  "code": "const totalCost = DSUtil.buildCostSum('stable', 15);\nconsole.log(`Total resources needed: ${totalCost}`);"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "buildTime": {
+              "signature": "buildTime(building, lvl, hqlvl)",
+              "description": "Calculate build time with headquarters reduction",
+              "parameters": {
+                "building": {
+                  "type": "string",
+                  "required": true,
+                  "description": "Building type"
+                },
+                "lvl": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Target building level"
+                },
+                "hqlvl": {
+                  "type": "number",
+                  "required": true,
+                  "range": "1-30",
+                  "description": "Current headquarters level"
+                }
+              },
+              "returns": {
+                "type": "number",
+                "description": "Build time in seconds"
+              },
+              "formula": "baseBuildTime * levelMultiplier * hqReduction / worldSpeed",
+              "examples": [
+                {
+                  "description": "Calculate build time for farm level 20 with HQ 25",
+                  "code": "const buildTimeSeconds = DSUtil.buildTime('farm', 20, 25);\nconst timeString = DSUtil.convertSecToTimeString(buildTimeSeconds);\nconsole.log(`Build time: ${timeString}`);"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "hqFactor": {
+              "signature": "hqFactor(lvl)",
+              "description": "Calculate headquarters build time reduction factor",
+              "parameters": {
+                "lvl": {
+                  "type": "number",
+                  "required": true,
+                  "range": "1-30",
+                  "description": "Headquarters level"
+                }
+              },
+              "returns": {
+                "type": "number",
+                "description": "Time reduction factor (less than 1.0)"
+              },
+              "formula": "1.05^(-hq_level)",
+              "examples": [
+                {
+                  "description": "Check HQ level 25 time reduction",
+                  "code": "const reduction = DSUtil.hqFactor(25);\nconsole.log(`HQ 25 reduces build time by ${((1-reduction)*100).toFixed(1)}%`);"
+                }
+              ],
+              "category": "calculations"
+            },
+            
+            "getStorage": {
+              "signature": "getStorage(lvl)",
+              "description": "Get storage capacity for warehouse level",
+              "parameters": {
+                "lvl": {
+                  "type": "number",
+                  "required": true
+
+                  {
+                    "tribalWarsLibraries": {
+                      "metadata": {
+                        "version": "1.2.3-beta",
+                        "lastUpdated": "2024-06-23",
+                        "author": "RedAlert (redalert_tw)",
+                        "purpose": "Comprehensive JavaScript libraries for Tribal Wars game automation and analysis",
+                        "gameInfo": {
+                          "name": "Tribal Wars",
+                          "type": "Medieval strategy browser game",
+                          "mechanics": {
+                            "resources": ["wood", "stone", "iron"],
+                            "buildings": ["main", "barracks", "stable", "garage", "church", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+                            "units": ["spear", "sword", "axe", "archer", "spy", "light", "marcher", "heavy", "ram", "catapult", "knight", "snob"],
+                            "coordinates": "x|y format (e.g., 123|456)",
+                            "population": "Limited by farm levels",
+                            "storage": "Limited by warehouse levels"
+                          }
+                        }
+                      },
+                      
+                      "libraries": {
+                        "twSDK": {
+                          "name": "Tribal Wars JavaScript SDK",
+                          "purpose": "Comprehensive framework for UI, data access, world interaction, and utilities",
+                          "namespace": "window.twSDK",
+                          "initialization": {
+                            "required": true,
+                            "async": true,
+                            "syntax": "await twSDK.init(config)",
+                            "config": {
+                              "scriptData": {
+                                "name": "string - Script name",
+                                "version": "string - Version number",
+                                "author": "string - Author name",
+                                "helpLink": "string - Help URL"
+                              },
+                              "translations": "object - Multi-language support",
+                              "allowedMarkets": "array - Allowed game markets/worlds",
+                              "allowedScreens": "array - Allowed game screens",
+                              "allowedModes": "array - Allowed game modes", 
+                              "isDebug": "boolean - Debug mode",
+                              "enableCountApi": "boolean - Usage statistics"
+                            },
+                            "example": "await twSDK.init({\n  scriptData: {\n    name: 'My Script',\n    version: '1.0.0',\n    author: 'Developer'\n  },\n  allowedMarkets: ['en', 'de'],\n  allowedScreens: ['overview']\n});"
+                          },
+                          
+                          "constants": {
+                            "buildingsList": {
+                              "type": "array",
+                              "value": ["main", "barracks", "stable", "garage", "church", "church_f", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+                              "description": "Complete list of all building types in the game"
+                            },
+                            "unitsFarmSpace": {
+                              "type": "object",
+                              "description": "Population space required for each unit type",
+                              "values": {
+                                "spear": 1, "sword": 1, "axe": 1, "archer": 1, "spy": 2,
+                                "light": 4, "marcher": 5, "heavy": 6, "ram": 5, 
+                                "catapult": 8, "knight": 10, "snob": 100
+                              }
+                            },
+                            "resPerHour": {
+                              "type": "object",
+                              "description": "Resource production per hour by building level",
+                              "range": "Level 0-30"
+                            },
+                            "coordsRegex": {
+                              "type": "RegExp",
+                              "value": "/\\d{1,3}\\|\\d{1,3}/g",
+                              "description": "Regular expression to match coordinate patterns (x|y)"
+                            }
+                          },
+                          
+                          "methods": {
+                            "worldDataAPI": {
+                              "signature": "worldDataAPI(entity)",
+                              "async": true,
+                              "description": "Fetch and cache world data for villages, players, tribes, or conquests",
+                              "parameters": {
+                                "entity": {
+                                  "type": "string",
+                                  "required": true,
+                                  "values": ["village", "player", "ally", "conquer"],
+                                  "description": "Type of world data to fetch"
+                                }
+                              },
+                              "returns": {
+                                "type": "array",
+                                "description": "Array of arrays containing entity data",
+                                "format": {
+                                  "village": "[[villageId, villageName, x, y, playerId, points, type], ...]",
+                                  "player": "[[playerId, playerName, tribeId, villages, points, rank], ...]",
+                                  "ally": "[[tribeId, tribeName, tribeTag, players, villages, points, allPoints, rank], ...]",
+                                  "conquer": "[[villageId, timestamp, newPlayerId, oldPlayerId, oldTribeId, newTribeId, points], ...]"
+                                }
+                              },
+                              "caching": "Automatic 1-hour cache in IndexedDB",
+                              "examples": [
+                                {
+                                  "description": "Get all villages",
+                                  "code": "const villages = await twSDK.worldDataAPI('village');\nconsole.log(`Found ${villages.length} villages`);"
+                                },
+                                {
+                                  "description": "Get player data",
+                                  "code": "const players = await twSDK.worldDataAPI('player');\nconst topPlayer = players[0]; // Rank 1 player"
+                                }
+                              ],
+                              "errorHandling": "throws Error if entity type invalid or fetch fails",
+                              "category": "dataAccess"
+                            },
+                            
+                            "calculateDistance": {
+                              "signature": "calculateDistance(from, to)",
+                              "description": "Calculate Euclidean distance between two coordinates",
+                              "parameters": {
+                                "from": {
+                                  "type": "string",
+                                  "required": true,
+                                  "format": "x|y",
+                                  "example": "123|456",
+                                  "description": "Starting coordinate"
+                                },
+                                "to": {
+                                  "type": "string", 
+                                  "required": true,
+                                  "format": "x|y",
+                                  "example": "789|012",
+                                  "description": "Target coordinate"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Distance in game field units (decimal)",
+                                "formula": "Math.sqrt((x2-x1)² + (y2-y1)²)"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Calculate distance between two villages",
+                                  "code": "const distance = twSDK.calculateDistance('123|456', '789|012');\nconsole.log(`Distance: ${distance.toFixed(2)} fields`);"
+                                }
+                              ],
+                              "relatedMethods": ["calculateDistanceFromCurrentVillage", "calculateTimesByDistance"],
+                              "category": "calculations"
+                            },
+                            
+                            "calculateDistanceFromCurrentVillage": {
+                              "signature": "calculateDistanceFromCurrentVillage(coord)",
+                              "description": "Calculate distance from current village to target coordinate",
+                              "parameters": {
+                                "coord": {
+                                  "type": "string",
+                                  "required": true,
+                                  "format": "x|y",
+                                  "example": "123|456",
+                                  "description": "Target coordinate"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Distance from current village in game fields"
+                              },
+                              "dependencies": "Requires game_data.village.x and game_data.village.y",
+                              "examples": [
+                                {
+                                  "description": "Find distance to target",
+                                  "code": "const distance = twSDK.calculateDistanceFromCurrentVillage('123|456');\nif (distance <= 20) {\n  console.log('Target within reasonable range');\n}"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "calculateTimesByDistance": {
+                              "signature": "calculateTimesByDistance(distance)",
+                              "async": true,
+                              "description": "Calculate travel times for all unit types at given distance",
+                              "parameters": {
+                                "distance": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Distance in game fields"
+                                }
+                              },
+                              "returns": {
+                                "type": "array",
+                                "description": "Array of travel time strings in HH:MM:SS format for each unit type",
+                                "order": "Same order as game_data.units array"
+                              },
+                              "dependencies": ["getWorldUnitInfo", "getWorldConfig"],
+                              "examples": [
+                                {
+                                  "description": "Get travel times for 15.5 field distance",
+                                  "code": "const times = await twSDK.calculateTimesByDistance(15.5);\nconsole.log(`Spear time: ${times[0]}, LC time: ${times[4]}`);"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "getCoordFromString": {
+                              "signature": "getCoordFromString(string)",
+                              "description": "Extract first coordinate from a text string",
+                              "parameters": {
+                                "string": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Text containing coordinates"
+                                }
+                              },
+                              "returns": {
+                                "type": "string|array",
+                                "description": "First coordinate found, or empty array if none"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Extract coordinate from report text",
+                                  "code": "const coord = twSDK.getCoordFromString('Attack on village (123|456) was successful');\nconsole.log(coord); // '123|456'"
+                                }
+                              ],
+                              "relatedMethods": ["getLastCoordFromString"],
+                              "category": "parsing"
+                            },
+                            
+                            "getLastCoordFromString": {
+                              "signature": "getLastCoordFromString(string)",
+                              "description": "Extract last coordinate from a text string",
+                              "parameters": {
+                                "string": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Text containing coordinates"
+                                }
+                              },
+                              "returns": {
+                                "type": "string|array",
+                                "description": "Last coordinate found, or empty array if none"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Get destination from command text",
+                                  "code": "const dest = twSDK.getLastCoordFromString('From (111|222) to (333|444)');\nconsole.log(dest); // '333|444'"
+                                }
+                              ],
+                              "category": "parsing"
+                            },
+                            
+                            "getContinentByCoord": {
+                              "signature": "getContinentByCoord(coord)",
+                              "description": "Get continent number from coordinate",
+                              "parameters": {
+                                "coord": {
+                                  "type": "string",
+                                  "required": true,
+                                  "format": "x|y",
+                                  "example": "123|456",
+                                  "description": "Coordinate to analyze"
+                                }
+                              },
+                              "returns": {
+                                "type": "string",
+                                "description": "Two-digit continent number",
+                                "format": "YX where Y=y/100, X=x/100"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Get continent for coordinate",
+                                  "code": "const continent = twSDK.getContinentByCoord('123|456');\nconsole.log(`Continent K${continent}`); // 'Continent K41'"
+                                }
+                              ],
+                              "category": "geography"
+                            },
+                            
+                            "filterVillagesByPlayerIds": {
+                              "signature": "filterVillagesByPlayerIds(playerIds, villages)",
+                              "description": "Filter village list to only include villages owned by specific players",
+                              "parameters": {
+                                "playerIds": {
+                                  "type": "array",
+                                  "required": true,
+                                  "description": "Array of player IDs to include",
+                                  "itemType": "number"
+                                },
+                                "villages": {
+                                  "type": "array", 
+                                  "required": true,
+                                  "description": "Village data array from worldDataAPI('village')"
+                                }
+                              },
+                              "returns": {
+                                "type": "array",
+                                "description": "Array of coordinate strings owned by specified players",
+                                "itemFormat": "x|y"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Get all villages owned by specific players",
+                                  "code": "const villages = await twSDK.worldDataAPI('village');\nconst playerVillages = twSDK.filterVillagesByPlayerIds([123, 456], villages);\nconsole.log(`Found ${playerVillages.length} enemy villages`);"
+                                }
+                              ],
+                              "category": "dataProcessing"
+                            },
+                            
+                            "getDestinationCoordinates": {
+                              "signature": "getDestinationCoordinates(config, tribes, players, villages)",
+                              "description": "Advanced coordinate filtering with multiple criteria",
+                              "parameters": {
+                                "config": {
+                                  "type": "object",
+                                  "required": true,
+                                  "properties": {
+                                    "playersInput": "string - Comma-separated player names",
+                                    "tribesInput": "string - Comma-separated tribe names", 
+                                    "continents": "string - Comma-separated continent numbers",
+                                    "minCoord": "string - Minimum coordinate boundary",
+                                    "maxCoord": "string - Maximum coordinate boundary",
+                                    "distCenter": "string - Maximum distance from center",
+                                    "center": "string - Center coordinate for distance filter",
+                                    "excludedPlayers": "string - Players to exclude",
+                                    "enable20To1Limit": "boolean - Apply 20:1 point rule",
+                                    "minPoints": "string - Minimum village points",
+                                    "maxPoints": "string - Maximum village points"
+                                  }
+                                },
+                                "tribes": {
+                                  "type": "array",
+                                  "required": true,
+                                  "description": "Tribe data from worldDataAPI('ally')"
+                                },
+                                "players": {
+                                  "type": "array",
+                                  "required": true, 
+                                  "description": "Player data from worldDataAPI('player')"
+                                },
+                                "villages": {
+                                  "type": "array",
+                                  "required": true,
+                                  "description": "Village data from worldDataAPI('village')"
+                                }
+                              },
+                              "returns": {
+                                "type": "array",
+                                "description": "Filtered coordinate strings matching all criteria"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Find enemy targets near current village",
+                                  "code": "const config = {\n  playersInput: 'Enemy1,Enemy2',\n  distCenter: '20',\n  center: `${game_data.village.x}|${game_data.village.y}`,\n  minPoints: '1000',\n  maxPoints: '8000'\n};\nconst targets = twSDK.getDestinationCoordinates(config, tribes, players, villages);"
+                                }
+                              ],
+                              "category": "dataProcessing"
+                            },
+                            
+                            "renderFixedWidget": {
+                              "signature": "renderFixedWidget(body, id, mainClass, customStyle, width, customName)",
+                              "description": "Create floating widget with draggable functionality",
+                              "parameters": {
+                                "body": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "HTML content for widget body"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Unique DOM element ID"
+                                },
+                                "mainClass": {
+                                  "type": "string", 
+                                  "required": true,
+                                  "description": "CSS class prefix for styling"
+                                },
+                                "customStyle": {
+                                  "type": "string",
+                                  "required": false,
+                                  "description": "Additional CSS styles"
+                                },
+                                "width": {
+                                  "type": "string",
+                                  "required": false,
+                                  "default": "360px",
+                                  "description": "Widget width (CSS format)"
+                                },
+                                "customName": {
+                                  "type": "string",
+                                  "required": false,
+                                  "default": "scriptData.name",
+                                  "description": "Widget title override"
+                                }
+                              },
+                              "returns": {
+                                "type": "void",
+                                "description": "Renders widget to DOM"
+                              },
+                              "features": ["Draggable", "Close button", "Responsive design"],
+                              "examples": [
+                                {
+                                  "description": "Create a floating calculator widget",
+                                  "code": "const widgetHTML = '<div><h4>Calculator</h4><button>Calculate</button></div>';\ntwSDK.renderFixedWidget(\n  widgetHTML,\n  'myCalculator', \n  'calc',\n  '.calc { background: #f0f0f0; }',\n  '400px',\n  'Resource Calculator'\n);"
+                                }
+                              ],
+                              "category": "ui"
+                            },
+                            
+                            "renderBoxWidget": {
+                              "signature": "renderBoxWidget(body, id, mainClass, customStyle)",
+                              "description": "Create inline widget in content area",
+                              "parameters": {
+                                "body": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "HTML content for widget body"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Unique DOM element ID"
+                                },
+                                "mainClass": {
+                                  "type": "string",
+                                  "required": true, 
+                                  "description": "CSS class prefix for styling"
+                                },
+                                "customStyle": {
+                                  "type": "string",
+                                  "required": false,
+                                  "description": "Additional CSS styles"
+                                }
+                              },
+                              "returns": {
+                                "type": "void",
+                                "description": "Renders widget to content container"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Create inline results display",
+                                  "code": "const resultsHTML = '<table class=\"ra-table\"><tr><td>Results here</td></tr></table>';\ntwSDK.renderBoxWidget(resultsHTML, 'results', 'resultBox', '');"
+                                }
+                              ],
+                              "category": "ui"
+                            },
+                            
+                            "buildUnitsPicker": {
+                              "signature": "buildUnitsPicker(selectedUnits, unitsToIgnore, type)",
+                              "description": "Generate HTML for unit selection interface",
+                              "parameters": {
+                                "selectedUnits": {
+                                  "type": "array",
+                                  "required": false,
+                                  "default": "[]",
+                                  "description": "Array of unit names to pre-select"
+                                },
+                                "unitsToIgnore": {
+                                  "type": "array", 
+                                  "required": true,
+                                  "description": "Array of unit names to exclude from picker"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "required": false,
+                                  "default": "checkbox",
+                                  "values": ["checkbox", "radio"],
+                                  "description": "Input type for selection"
+                                }
+                              },
+                              "returns": {
+                                "type": "string",
+                                "description": "HTML table with unit selection inputs"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Create unit picker with spear and sword pre-selected",
+                                  "code": "const unitPicker = twSDK.buildUnitsPicker(\n  ['spear', 'sword'], // pre-selected\n  ['knight', 'snob'], // exclude these\n  'checkbox'\n);\ndocument.getElementById('unitSelection').innerHTML = unitPicker;"
+                                }
+                              ],
+                              "category": "ui"
+                            },
+                            
+                            "formatAsNumber": {
+                              "signature": "formatAsNumber(number)",
+                              "description": "Format number with thousands separators (German format)",
+                              "parameters": {
+                                "number": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Number to format"
+                                }
+                              },
+                              "returns": {
+                                "type": "string",
+                                "description": "Formatted number string with dots as thousands separators"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Format large numbers for display",
+                                  "code": "const formatted = twSDK.formatAsNumber(1234567);\nconsole.log(formatted); // '1.234.567'"
+                                }
+                              ],
+                              "category": "formatting"
+                            },
+                            
+                            "secondsToHms": {
+                              "signature": "secondsToHms(timestamp)",
+                              "description": "Convert seconds to HH:MM:SS time format",
+                              "parameters": {
+                                "timestamp": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Time in seconds"
+                                }
+                              },
+                              "returns": {
+                                "type": "string",
+                                "description": "Time in HH:MM:SS format"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Convert build time to readable format",
+                                  "code": "const timeString = twSDK.secondsToHms(3661);\nconsole.log(timeString); // '01:01:01'"
+                                }
+                              ],
+                              "category": "formatting"
+                            },
+                            
+                            "copyToClipboard": {
+                              "signature": "copyToClipboard(string)",
+                              "description": "Copy text to system clipboard",
+                              "parameters": {
+                                "string": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Text to copy"
+                                }
+                              },
+                              "returns": {
+                                "type": "void"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Copy coordinates to clipboard",
+                                  "code": "twSDK.copyToClipboard('123|456');\nUI.SuccessMessage('Coordinates copied!');"
+                                }
+                              ],
+                              "category": "utilities"
+                            },
+                            
+                            "getServerDateTime": {
+                              "signature": "getServerDateTime()",
+                              "description": "Get current server date and time as formatted string",
+                              "parameters": {},
+                              "returns": {
+                                "type": "string",
+                                "format": "YYYY-MM-DD HH:MM:SS",
+                                "description": "Current server time"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Get current server time",
+                                  "code": "const serverTime = twSDK.getServerDateTime();\nconsole.log(`Server time: ${serverTime}`);"
+                                }
+                              ],
+                              "category": "time"
+                            },
+                            
+                            "getServerDateTimeObject": {
+                              "signature": "getServerDateTimeObject()",
+                              "description": "Get current server time as Date object",
+                              "parameters": {},
+                              "returns": {
+                                "type": "Date",
+                                "description": "Current server time as Date object"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Calculate future time",
+                                  "code": "const now = twSDK.getServerDateTimeObject();\nconst futureTime = new Date(now.getTime() + 3600000); // +1 hour"
+                                }
+                              ],
+                              "category": "time"
+                            },
+                            
+                            "csvToArray": {
+                              "signature": "csvToArray(strData, strDelimiter)",
+                              "description": "Parse CSV data into 2D array",
+                              "parameters": {
+                                "strData": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "CSV data string"
+                                },
+                                "strDelimiter": {
+                                  "type": "string",
+                                  "required": false,
+                                  "default": ",",
+                                  "description": "Field delimiter"
+                                }
+                              },
+                              "returns": {
+                                "type": "array",
+                                "description": "2D array of parsed CSV data"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Parse CSV data",
+                                  "code": "const csvData = 'name,age,city\\nJohn,25,NYC\\nJane,30,LA';\nconst parsed = twSDK.csvToArray(csvData);\nconsole.log(parsed[1]); // ['John', '25', 'NYC']"
+                                }
+                              ],
+                              "category": "dataProcessing"
+                            }
+                          }
+                        },
+                        
+                        "DSUtil": {
+                          "name": "Dark Souls Utility / Building Calculator",
+                          "purpose": "Specialized calculator for game mechanics, buildings, resources, and time calculations",
+                          "namespace": "DSUtil",
+                          "initialization": {
+                            "required": false,
+                            "configuration": {
+                              "speed": "DSUtil.speed = game_data.speed || 1.0",
+                              "datalvl": "DSUtil.datalvl = true",
+                              "description": "Configure for current world settings"
+                            },
+                            "example": "DSUtil.speed = game_data.speed || 1.0;\nDSUtil.datalvl = true; // Use current village data"
+                          },
+                          
+                          "properties": {
+                            "speed": {
+                              "type": "number",
+                              "default": 1.6,
+                              "description": "World speed multiplier for calculations"
+                            },
+                            "mineBaseProd": {
+                              "type": "number", 
+                              "default": 1,
+                              "description": "Base mine production rate"
+                            },
+                            "bonusProd": {
+                              "type": "number",
+                              "default": 1,
+                              "description": "Production bonus multiplier (1.2 = 20% bonus)"
+                            },
+                            "datalvl": {
+                              "type": "boolean",
+                              "default": false,
+                              "description": "Whether to use current village building levels"
+                            }
+                          },
+                          
+                          "buildingConfiguration": {
+                            "description": "Complete building configuration data with costs, times, and requirements",
+                            "structure": {
+                              "buildingName": {
+                                "max_level": "string - Maximum building level",
+                                "min_level": "string - Minimum building level", 
+                                "wood": "string - Base wood cost",
+                                "stone": "string - Base stone cost",
+                                "iron": "string - Base iron cost",
+                                "pop": "string - Base population cost",
+                                "wood_factor": "string - Cost multiplier per level",
+                                "stone_factor": "string - Cost multiplier per level", 
+                                "iron_factor": "string - Cost multiplier per level",
+                                "pop_factor": "string - Population multiplier per level",
+                                "build_time": "string - Base build time in seconds",
+                                "build_time_factor": "string - Time multiplier per level"
+                              }
+                            }
+                          },
+                          
+                          "methods": {
+                            "buildCost": {
+                              "signature": "buildCost(building, lvl, res)",
+                              "description": "Calculate resource cost for building upgrade",
+                              "parameters": {
+                                "building": {
+                                  "type": "string",
+                                  "required": true,
+                                  "values": ["main", "barracks", "stable", "garage", "church", "watchtower", "snob", "smith", "place", "statue", "market", "wood", "stone", "iron", "farm", "storage", "hide", "wall"],
+                                  "description": "Building type"
+                                },
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "1-30 (varies by building)",
+                                  "description": "Target building level"
+                                },
+                                "res": {
+                                  "type": "string",
+                                  "required": false,
+                                  "values": ["wood", "stone", "iron"],
+                                  "description": "Specific resource, or omit for all resources"
+                                }
+                              },
+                              "returns": {
+                                "type": "number|array",
+                                "description": "Cost for specific resource (number) or all resources [wood, stone, iron] (array)"
+                              },
+                              "formula": "baseCost * (costFactor^(level-1))",
+                              "examples": [
+                                {
+                                  "description": "Get wood cost for main building level 15",
+                                  "code": "const woodCost = DSUtil.buildCost('main', 15, 'wood');\nconsole.log(`Wood needed: ${woodCost}`);"
+                                },
+                                {
+                                  "description": "Get all costs for barracks level 10",
+                                  "code": "const [wood, stone, iron] = DSUtil.buildCost('barracks', 10);\nconsole.log(`Costs: ${wood}/${stone}/${iron}`);"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "buildCostSum": {
+                              "signature": "buildCostSum(building, lvl)",
+                              "description": "Calculate total resource cost (wood + stone + iron)",
+                              "parameters": {
+                                "building": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Building type"
+                                },
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Target building level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Sum of all resource costs"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Get total cost for stable level 15",
+                                  "code": "const totalCost = DSUtil.buildCostSum('stable', 15);\nconsole.log(`Total resources needed: ${totalCost}`);"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "buildTime": {
+                              "signature": "buildTime(building, lvl, hqlvl)",
+                              "description": "Calculate build time with headquarters reduction",
+                              "parameters": {
+                                "building": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Building type"
+                                },
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Target building level"
+                                },
+                                "hqlvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "1-30",
+                                  "description": "Current headquarters level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Build time in seconds"
+                              },
+                              "formula": "baseBuildTime * levelMultiplier * hqReduction / worldSpeed",
+                              "examples": [
+                                {
+                                  "description": "Calculate build time for farm level 20 with HQ 25",
+                                  "code": "const buildTimeSeconds = DSUtil.buildTime('farm', 20, 25);\nconst timeString = DSUtil.convertSecToTimeString(buildTimeSeconds);\nconsole.log(`Build time: ${timeString}`);"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "hqFactor": {
+                              "signature": "hqFactor(lvl)",
+                              "description": "Calculate headquarters build time reduction factor",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "1-30",
+                                  "description": "Headquarters level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Time reduction factor (less than 1.0)"
+                              },
+                              "formula": "1.05^(-hq_level)",
+                              "examples": [
+                                {
+                                  "description": "Check HQ level 25 time reduction",
+                                  "code": "const reduction = DSUtil.hqFactor(25);\nconsole.log(`HQ 25 reduces build time by ${((1-reduction)*100).toFixed(1)}%`);"
+                                }
+                              ],
+                              "category": "calculations"
+                            },
+                            
+                            "getStorage": {
+                              "signature": "getStorage(lvl)",
+                              "description": "Get storage capacity for warehouse level",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "0-30",
+                                  "description": "Warehouse level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Storage capacity for each resource type"
+                              },
+                              "dataSource": "Pre-calculated exact game values",
+                              "examples": [
+                                {
+                                  "description": "Check storage capacity",
+                                  "code": "const capacity = DSUtil.getStorage(15);\nconsole.log(`Storage capacity: ${capacity} per resource`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "getFarm": {
+                              "signature": "getFarm(lvl)",
+                              "description": "Get population capacity for farm level",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "1-30",
+                                  "description": "Farm level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Maximum population capacity"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Check population limit",
+                                  "code": "const popLimit = DSUtil.getFarm(25);\nconsole.log(`Population limit: ${popLimit}`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "getMarket": {
+                              "signature": "getMarket(lvl)",
+                              "description": "Get number of traders available for market level",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "0-25",
+                                  "description": "Market level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Number of traders available"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Check trading capacity",
+                                  "code": "const traders = DSUtil.getMarket(15);\nconsole.log(`Available traders: ${traders}`);\nconst maxResources = traders * 1000; // Each trader carries 1000 resources"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "getResProduction": {
+                              "signature": "getResProduction(lvl, type)",
+                              "description": "Calculate resource production per hour for mine level",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "range": "0-30",
+                                  "description": "Mine level (wood/stone/iron building)"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "required": false,
+                                  "values": ["wood", "stone", "iron"],
+                                  "description": "Resource type (for bonus calculations)"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Resources produced per hour"
+                              },
+                              "formula": "baseProduction * 30 * worldSpeed * (1.163118^(level-1)) * bonusMultiplier",
+                              "examples": [
+                                {
+                                  "description": "Calculate wood production for level 20 mine",
+                                  "code": "const production = DSUtil.getResProduction(20, 'wood');\nconsole.log(`Wood production: ${production}/hour`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "popUsed": {
+                              "signature": "popUsed(buildingType, level)",
+                              "description": "Calculate population used by specific building level",
+                              "parameters": {
+                                "buildingType": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Building type"
+                                },
+                                "level": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Building level"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Population consumed by this building level"
+                              },
+                              "formula": "basePop * (popFactor^(level-1))",
+                              "examples": [
+                                {
+                                  "description": "Check population used by barracks level 15",
+                                  "code": "const popUsed = DSUtil.popUsed('barracks', 15);\nconsole.log(`Barracks level 15 uses ${popUsed} population`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "popUsedVillage": {
+                              "signature": "popUsedVillage(buildings)",
+                              "description": "Calculate total population used by all buildings in village",
+                              "parameters": {
+                                "buildings": {
+                                  "type": "object",
+                                  "required": true,
+                                  "description": "Object with building types as keys and levels as values",
+                                  "example": "{main: 20, barracks: 15, farm: 25}"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Total population used by all buildings"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Calculate total village population usage",
+                                  "code": "const buildings = game_data.village.buildings;\nconst totalPop = DSUtil.popUsedVillage(buildings);\nconst farmCap = DSUtil.getFarm(buildings.farm);\nconsole.log(`Population: ${totalPop}/${farmCap}`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "pointsVillage": {
+                              "signature": "pointsVillage(buildings)",
+                              "description": "Calculate total points for village based on building levels",
+                              "parameters": {
+                                "buildings": {
+                                  "type": "object",
+                                  "required": true,
+                                  "description": "Object with building types as keys and levels as values"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Total village points"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Calculate village points",
+                                  "code": "const totalPoints = DSUtil.pointsVillage(game_data.village.buildings);\nconsole.log(`Village points: ${totalPoints}`);"
+                                }
+                              ],
+                              "category": "buildings"
+                            },
+                            
+                            "buildingReqirementsMet": {
+                              "signature": "buildingReqirementsMet(buildings, type)",
+                              "description": "Check if prerequisites are met for building construction",
+                              "parameters": {
+                                "buildings": {
+                                  "type": "object",
+                                  "required": true,
+                                  "description": "Current building levels object"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Building type to check"
+                                }
+                              },
+                              "returns": {
+                                "type": "boolean",
+                                "description": "True if requirements are met"
+                              },
+                              "requirements": {
+                                "barracks": "main >= 3",
+                                "stable": "main >= 10, barracks >= 5, smith >= 5",
+                                "garage": "main >= 10, smith >= 10",
+                                "snob": "main >= 20, market >= 10, smith >= 20",
+                                "smith": "main >= 5, barracks >= 1",
+                                "market": "main >= 3, storage >= 2",
+                                "wall": "barracks >= 1"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Check if can build stable",
+                                  "code": "const canBuildStable = DSUtil.buildingReqirementsMet(\n  game_data.village.buildings,\n  'stable'\n);\nif (canBuildStable) {\n  console.log('Can build stable!');\n}"
+                                }
+                              ],
+                              "category": "validation"
+                            },
+                            
+                            "getBuildingObj": {
+                              "signature": "getBuildingObj(type, lvl, hqlvl)",
+                              "description": "Create comprehensive building analysis object with all calculated properties",
+                              "parameters": {
+                                "type": {
+                                  "type": "string",
+                                  "required": true,
+                                  "description": "Building type"
+                                },
+                                "lvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Target building level"
+                                },
+                                "hqlvl": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Current headquarters level"
+                                }
+                              },
+                              "returns": {
+                                "type": "object",
+                                "description": "Complete building analysis object",
+                                "properties": {
+                                  "id": "string - Unique identifier (type|level|hqlevel)",
+                                  "name": "string - Building type",
+                                  "wood": "number - Wood cost",
+                                  "stone": "number - Stone cost", 
+                                  "iron": "number - Iron cost",
+                                  "sumCost": "number - Total resource cost",
+                                  "time": "number - Build time in seconds",
+                                  "lvl": "number - Target level",
+                                  "hqlvl": "number - HQ level",
+                                  "pop": "number - Population difference",
+                                  "cWood": "number - Reduced wood cost (80%)",
+                                  "cStone": "number - Reduced stone cost (80%)",
+                                  "cIron": "number - Reduced iron cost (80%)",
+                                  "cCost": "number - Total reduced cost",
+                                  "isEnough": "boolean - Can afford normal cost",
+                                  "isCEnough": "boolean - Can afford reduced cost",
+                                  "isPop": "boolean - Has enough population",
+                                  "isStorage": "boolean - Storage can hold resources",
+                                  "isCStorage": "boolean - Storage can hold reduced cost"
+                                }
+                              },
+                              "dependencies": "Requires simVillage object for resource/population checks",
+                              "examples": [
+                                {
+                                  "description": "Analyze building upgrade feasibility",
+                                  "code": "const buildObj = DSUtil.getBuildingObj('main', 25, 20);\nconsole.log(`Cost: ${buildObj.wood}/${buildObj.stone}/${buildObj.iron}`);\nconsole.log(`Time: ${DSUtil.convertSecToTimeString(buildObj.time)}`);\nconsole.log(`Can afford: ${buildObj.isEnough}`);"
+                                }
+                              ],
+                              "category": "analysis"
+                            },
+                            
+                            "convertSecToTimeString": {
+                              "signature": "convertSecToTimeString(sec)",
+                              "description": "Convert seconds to HH:MM:SS time format",
+                              "parameters": {
+                                "sec": {
+                                  "type": "number",
+                                  "required": true,
+                                  "description": "Time in seconds"
+                                }
+                              },
+                              "returns": {
+                                "type": "string",
+                                "format": "HH:MM:SS",
+                                "description": "Formatted time string"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Format build time",
+                                  "code": "const timeString = DSUtil.convertSecToTimeString(3661);\nconsole.log(timeString); // '1:01:01'"
+                                }
+                              ],
+                              "category": "formatting"
+                            },
+                            
+                            "convertTimeStringToSec": {
+                              "signature": "convertTimeStringToSec(time)",
+                              "description": "Convert time string to seconds",
+                              "parameters": {
+                                "time": {
+                                  "type": "string",
+                                  "required": true,
+                                  "format": "HH:MM:SS or MM:SS",
+                                  "description": "Time string to convert"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Time in seconds"
+                              },
+                              "examples": [
+                                {
+                                  "description": "Parse time input",
+                                  "code": "const seconds = DSUtil.convertTimeStringToSec('2:15:30');\nconsole.log(`${seconds} seconds`); // 8130 seconds"
+                                }
+                              ],
+                              "category": "formatting"
+                            },
+                            
+                            "checklvl": {
+                              "signature": "checklvl(lvl, type)",
+                              "description": "Smart level resolution - returns provided level or current building level",
+                              "parameters": {
+                                "lvl": {
+                                  "type": "number",
+                                  "required": false,
+                                  "description": "Explicit level, or null to use current"
+                                },
+                                "type": {
+                                  "type": "string", 
+                                  "required": false,
+                                  "description": "Building type for current level lookup"
+                                }
+                              },
+                              "returns": {
+                                "type": "number",
+                                "description": "Resolved building level"
+                              },
+                              "logic": "Returns lvl if provided, otherwise game_data.village.buildings[type] if datalvl=true, otherwise null",
+                              "examples": [
+                                {
+                                  "description": "Get level with fallback to current",
+                                  "code": "DSUtil.datalvl = true;\nconst level = DSUtil.checklvl(null, 'main'); // Uses current main level\nconst explicitLevel = DSUtil.checklvl(20, 'main'); // Uses 20"
+                                }
+                              ],
+                              "category": "utilities"
+                            }
+                          }
+                        }
+                      },
+                      
+                      "integrationPatterns": {
+                        "initialization": {
+                          "description": "Standard initialization pattern for both libraries",
+                          "code": "// Initialize twSDK first (async)\nawait twSDK.init({\n  scriptData: {\n    name: 'My Script',\n    version: '1.0.0',\n    author: 'Developer'\n  },\n  allowedMarkets: ['en', 'de'],\n  allowedScreens: ['overview']\n});\n\n// Configure DSUtil for current world\nDSUtil.speed = game_data.speed || 1.0;\nDSUtil.datalvl = true;",
+                          "required": true,
+                          "order": "twSDK first, then DSUtil configuration"
+                        },
+                        
+                        "dataAccess": {
+                          "description": "Common pattern for accessing and processing world data",
+                          "code": "// Fetch world data\nconst villages = await twSDK.worldDataAPI('village');\nconst players = await twSDK.worldDataAPI('player');\n\n// Process and filter\nconst playerIds = [123, 456]; // Target player IDs\nconst targetVillages = twSDK.filterVillagesByPlayerIds(playerIds, villages);\n\n// Calculate distances\nconst currentCoord = `${game_data.village.x}|${game_data.village.y}`;\nconst nearbyTargets = targetVillages.filter(coord => {\n  const distance = twSDK.calculateDistance(currentCoord, coord);\n  return distance <= 20; // Within 20 fields\n});",
+                          "category": "common"
+                        },
+                        
+                        "buildingAnalysis": {
+                          "description": "Analyze building upgrades using both libraries",
+                          "code": "// Get current building levels\nconst buildings = game_data.village.buildings;\n\n// Analyze potential upgrade\nconst targetLevel = (buildings.main || 1) + 1;\nconst buildObj = DSUtil.getBuildingObj('main', targetLevel, buildings.main || 1);\n\n// Check feasibility\nif (buildObj.isEnough && buildObj.isPop) {\n  const timeString = DSUtil.convertSecToTimeString(buildObj.time);\n  console.log(`Can upgrade main to level ${targetLevel}`);\n  console.log(`Cost: ${twSDK.formatAsNumber(buildObj.sumCost)} resources`);\n  console.log(`Time: ${timeString}`);\n} else {\n  console.log('Cannot afford upgrade');\n}",
+                          "category": "analysis"
+                        },
+                        
+                        "uiCreation": {
+                          "description": "Create user interfaces with both libraries' data",
+                          "code": "// Calculate village statistics\nconst totalPoints = DSUtil.pointsVillage(game_data.village.buildings);\nconst totalPop = DSUtil.popUsedVillage(game_data.village.buildings);\nconst farmCap = DSUtil.getFarm(game_data.village.buildings.farm || 1);\n\n// Create UI content\nconst widgetHTML = `\n  <h4>Village Statistics</h4>\n  <div>Points: ${twSDK.formatAsNumber(totalPoints)}</div>\n  <div>Population: ${totalPop}/${farmCap}</div>\n  <div>Coordinate: ${game_data.village.x}|${game_data.village.y}</div>\n`;\n\n// Render widget\ntwSDK.renderFixedWidget(\n  widgetHTML,\n  'villageStats',\n  'stats',\n  '.stats { background: #f0f0f0; }',\n  '300px',\n  'Village Stats'\n);",
+                          "category": "ui"
+                        },
+                        
+                        "errorHandling": {
+                          "description": "Proper error handling pattern for both libraries",
+                          "code": "async function safeOperation() {\n  try {\n    // Validate inputs\n    if (!game_data.village) {\n      throw new Error('Village data not available');\n    }\n    \n    // Check library initialization\n    if (typeof twSDK === 'undefined') {\n      throw new Error('twSDK not loaded');\n    }\n    \n    // Perform operations\n    const villages = await twSDK.worldDataAPI('village');\n    const buildCost = DSUtil.buildCost('main', 20);\n    \n    // Success feedback\n    UI.SuccessMessage('Operation completed successfully!');\n    return { villages, buildCost };\n    \n  } catch (error) {\n    console.error('Operation failed:', error);\n    UI.ErrorMessage(`Error: ${error.message}`);\n    return null;\n  }\n}",
+                          "category": "errorHandling"
+                        }
+                      },
+                      
+                      "commonUseCases": {
+                        "villageOptimizer": {
+                          "description": "Calculate optimal building upgrade sequences",
+                          "requirements": ["DSUtil for calculations", "twSDK for UI"],
+                          "keyMethods": ["DSUtil.getBuildingObj", "DSUtil.buildingReqirementsMet", "twSDK.renderFixedWidget"],
+                          "pattern": "1. Get current buildings\n2. Calculate upgrade costs and times\n3. Check requirements and resources\n4. Generate optimal sequence\n5. Display in UI"
+                        },
+                        
+                        "attackPlanner": {
+                          "description": "Find targets and calculate attack logistics",
+                          "requirements": ["twSDK for world data", "DSUtil for unit calculations"],
+                          "keyMethods": ["twSDK.worldDataAPI", "twSDK.getDestinationCoordinates", "twSDK.calculateTimesByDistance"],
+                          "pattern": "1. Fetch world data\n2. Filter targets by criteria\n3. Calculate distances and travel times\n4. Generate attack plans\n5. Create attack links"
+                        },
+                        
+                        "resourceManager": {
+                          "description": "Monitor production and manage trading",
+                          "requirements": ["DSUtil for production", "twSDK for UI and utilities"],
+                          "keyMethods": ["DSUtil.getResProduction", "DSUtil.getStorage", "twSDK.formatAsNumber"],
+                          "pattern": "1. Calculate current production rates\n2. Determine storage capacity\n3. Identify surpluses and deficits\n4. Suggest trading opportunities\n5. Display forecasts"
+                        },
+                        
+                        "multiVillageCoordination": {
+                          "description": "Coordinate activities across multiple villages",
+                          "requirements": ["Both libraries for comprehensive analysis"],
+                          "keyMethods": ["twSDK.worldDataAPI", "DSUtil.getBuildingObj", "twSDK.calculateDistance"],
+                          "pattern": "1. Load all player villages\n2. Analyze each village separately\n3. Identify optimization opportunities\n4. Coordinate resource transfers\n5. Bulk operations interface"
+                        }
+                      },
+                      
+                      "bestPractices": {
+                        "performance": {
+                          "caching": "World data APIs cache automatically for 1 hour",
+                          "rateLimit": "Use twSDK.delayBetweenRequests for batch operations",
+                          "memory": "Clean up event listeners and intervals",
+                          "async": "Always await twSDK.worldDataAPI calls"
+                        },
+                        
+                        "validation": {
+                          "coordinates": "Use twSDK.coordsRegex to validate coordinate format",
+                          "buildingLevels": "Check DSUtil.buildConf[building].max_level for limits",
+                          "resources": "Validate against storage capacity and availability",
+                          "requirements": "Use DSUtil.buildingReqirementsMet before calculations"
+                        },
+                        
+                        "userExperience": {
+                          "feedback": "Always provide UI.SuccessMessage/ErrorMessage feedback",
+                          "progress": "Use twSDK.startProgressBar for long operations",
+                          "responsive": "Test widgets on mobile (twSDK.isMobile)",
+                          "cleanup": "Remove widgets and clear data on script end"
+                        },
+                        
+                        "debugging": {
+                          "logging": "Use console.debug for development logs",
+                          "validation": "Check typeof for library availability",
+                          "errorHandling": "Wrap all operations in try-catch blocks",
+                          "testing": "Test with various world types and building combinations"
+                        }
+                      },
+                      
+                      "gameContextData": {
+                        "gameData": {
+                          "village": "game_data.village - Current village information",
+                          "player": "game_data.player - Current player information",
+                          "world": "game_data.world - World/server information",
+                          "market": "game_data.market - Language/market code",
+                          "speed": "game_data.speed - World speed multiplier",
+                          "units": "game_data.units - Available unit types for this world",
+                          "features": "game_data.features - Active premium features"
+                        },
+                        
+                        "worldTypes": {
+                          "archer": "Has archer and marcher units",
+                          "paladin": "Has knight/paladin units",
+                          "church": "Has church buildings and faith system",
+                          "watchtower": "Has watchtower buildings"
+                        },
+                        
+                        "premiumFeatures": {
+                          "PA": "Premium Account - Additional features and convenience",
+                          "LA": "Farm Assistant - Automated farming",
+                          "AM": "Account Manager - Village templates and automation"
+                        }
+                      },
+                      
+                      "troubleshooting": {
+                        "commonErrors": {
+                          "undefinedLibrary": {
+                            "error": "twSDK is not defined",
+                            "solution": "Ensure library is loaded before script execution",
+                            "check": "if (typeof twSDK === 'undefined') { /* handle error */ }"
+                          },
+                          "notInitialized": {
+                            "error": "Script not initialized",
+                            "solution": "Call await twSDK.init(config) before using other methods",
+                            "check": "Track initialization state in script"
+                          },
+                          "invalidBuilding": {
+                            "error": "Unknown building type",
+                            "solution": "Use only building types from DSUtil.buildingsList or twSDK.buildingsList",
+                            "validation": "if (!DSUtil.buildConf[building]) { /* invalid building */ }"
+                          },
+                          "worldDataFailed": {
+                            "error": "Failed to fetch world data",
+                            "solution": "Check network connection, retry with exponential backoff",
+                            "handling": "Implement proper error handling and user feedback"
+                          }
+                        }
+                      },
+                      
+                      "referenceData": {
+                        "buildingMaxLevels": {
+                          "main": 30, "barracks": 25, "stable": 20, "garage": 15,
+                          "church": 3, "church_f": 1, "watchtower": 20, "snob": 1,
+                          "smith": 20, "place": 1, "statue": 1, "market": 25,
+                          "wood": 30, "stone": 30, "iron": 30, "farm": 30,
+                          "storage": 30, "hide": 10, "wall": 20
+                        },
+                        
+                        "unitSpeeds": {
+                          "spear": 18, "sword": 22, "axe": 18, "archer": 18,
+                          "spy": 9, "light": 10, "marcher": 10, "heavy": 11,
+                          "ram": 30, "catapult": 30, "knight": 10, "snob": 35
+                        },
+                        
+                        "coordinateSystem": {
+                          "format": "x|y where x,y are 0-999",
+                          "continents": "100x100 field areas, numbered YX (y/100)(x/100)",
+                          "sectors": "20x20 field areas within continents",
+                          "fields": "5x5 field areas within sectors"
+                        }
+                      }
+                    }
+                  }
