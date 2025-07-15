@@ -1,6 +1,6 @@
 /**
  * Auto Build Bot
- * Main bot logic for automatic building
+ * Main bot logic for automatic building using smart calculations
  */
 class AutoBuildBot {
     constructor() {
@@ -8,7 +8,10 @@ class AutoBuildBot {
         this.checkInterval = null;
         this.settings = null;
         this.database = null;
+        this.enhancedDataManager = null;
+        this.smartCalculator = null;
         this.lastCheck = 0;
+        this.nextCheckTime = 0;
     }
     
     /**
@@ -17,7 +20,16 @@ class AutoBuildBot {
     init() {
         this.settings = window.AutoBuilder.getSettings();
         this.database = window.AutoBuilder.getDatabase();
-        console.log('🤖 Auto Build Bot initialized');
+        
+        // Initialize enhanced data manager
+        this.enhancedDataManager = new EnhancedDataManager();
+        this.enhancedDataManager.init();
+        
+        // Initialize smart calculator
+        this.smartCalculator = new SmartBuildCalculator();
+        this.smartCalculator.init();
+        
+        console.log('🤖 Auto Build Bot initialized with smart calculator');
     }
     
     /**
@@ -30,12 +42,14 @@ class AutoBuildBot {
         }
         
         this.isRunning = true;
-        const interval = this.settings.get('checkInterval') || 30;
-        this.checkInterval = setInterval(() => {
-            this.checkAndBuild();
-        }, interval * 1000);
+        this.nextCheckTime = Date.now() + 60000; // Start checking in 1 minute
         
-        console.log(`🤖 Auto Build Bot started! (checking every ${interval} seconds)`);
+        // Use smart interval based on calculations
+        this.checkInterval = setInterval(() => {
+            this.smartCheckAndBuild();
+        }, 30000); // Check every 30 seconds, but only act when conditions are met
+        
+        console.log('🤖 Smart Auto Build Bot started!');
     }
     
     /**
@@ -69,10 +83,9 @@ class AutoBuildBot {
             return false;
         }
         
-        // Check if enough time has passed since last check
+        // Check if it's time for next calculation
         const now = Date.now();
-        const minInterval = (this.settings.get('checkInterval') || 30) * 1000;
-        if (now - this.lastCheck < minInterval) {
+        if (now < this.nextCheckTime) {
             return false;
         }
         
@@ -80,9 +93,9 @@ class AutoBuildBot {
     }
     
     /**
-     * Main bot logic - check and build
+     * Smart check and build using database calculations
      */
-    async checkAndBuild() {
+    async smartCheckAndBuild() {
         if (!this.shouldRun()) {
             return;
         }
@@ -91,208 +104,56 @@ class AutoBuildBot {
             this.lastCheck = Date.now();
             const villageId = game_data.village.id.toString();
 
-            // Get village data
-            const villageData = this.database.getVillage('villages', villageId);
-            if (!villageData) {
-                console.log('⚠️ No village data found, collecting...');
-                await this.collectVillageData(villageId);
-                return;
-            }
-
-            // Get current game queue
-            const gameQueue = await this.getCurrentGameQueue(villageId);
-            console.log(`📋 Current game queue: ${gameQueue.length}/5 buildings`);
-
-            // Check if we can add more buildings to game queue
-            if (gameQueue.length >= 5) {
-                console.log('ℹ️ Game queue is full (5/5), waiting...');
-                return;
-            }
-
-            // Get the template assigned to this village
-            const templateName = this.settings.getVillageTemplate(villageId);
-            if (!templateName) {
-                console.log(`ℹ️ No template assigned to village ${villageId}, skipping.`);
-                return;
-            }
-
-            // Use template-based building only
-            let nextBuilding = this.settings.getNextBuildingFromTemplate(templateName, villageData);
-            if (nextBuilding) {
-                console.log(`📋 Next building from template "${templateName}": ${nextBuilding.building} → Level ${nextBuilding.target_level}`);
+            console.log(`🧠 Smart check for village ${villageId}...`);
+            
+            // Use smart calculator to determine if we should build
+            const decision = await this.smartCalculator.calculateNextBuild(villageId);
+            
+            // Update next check time based on decision
+            this.nextCheckTime = decision.nextCheck || (Date.now() + 300000); // Default 5 minutes
+            
+            if (decision.shouldBuild) {
+                console.log(`🏗️ Smart decision: BUILD ${decision.building.building} to level ${decision.building.target_level}`);
+                await this.build(decision.building, villageId);
             } else {
-                console.log(`ℹ️ No more buildings to build for template "${templateName}" in village ${villageId}`);
-                return;
-            }
-
-            // Check if we can build this building
-            if (this.canBuild(villageData, nextBuilding, gameQueue)) {
-                await this.build(nextBuilding);
-            }
-
-        } catch (error) {
-            console.error('❌ Error in checkAndBuild:', error);
-        }
-    }
-    
-    /**
-     * Collect village data
-     */
-    async collectVillageData(villageId) {
-        try {
-            const villageData = await DataCollector.collectAllData();
-            if (villageData) {
-                this.database.updateVillage('villages', villageId, villageData);
-                console.log('✅ Village data collected and saved');
-            }
-        } catch (error) {
-            console.error('❌ Failed to collect village data:', error);
-        }
-    }
-    
-    /**
-     * Get current game queue from the page
-     * @param {string} villageId - Village ID
-     * @returns {Promise<array>} Current game queue
-     */
-    async getCurrentGameQueue(villageId) {
-        return new Promise((resolve) => {
-            // Try to get queue from current page first
-            const queueFromPage = this.extractQueueFromCurrentPage();
-            if (queueFromPage.length > 0) {
-                resolve(queueFromPage);
-                return;
-            }
-            
-            // If not on main page, open headquarters to check
-            console.log('🔗 Opening headquarters to check queue...');
-            const hqUrl = `game.php?village=${villageId}&screen=main`;
-            const hqTab = window.open(hqUrl, '_blank');
-            
-            if (!hqTab) {
-                console.warn('⚠️ Could not open headquarters tab');
-                resolve([]);
-                return;
-            }
-            
-            setTimeout(() => {
-                try {
-                    const queueData = DataCollector.extractQueueFromDocument(hqTab.document);
-                    hqTab.close();
-                    console.log(`✅ Game queue found: ${queueData.length} items`);
-                    resolve(queueData);
-                } catch (error) {
-                    console.error('❌ Failed to get game queue:', error);
-                    hqTab.close();
-                    resolve([]);
-                }
-            }, 3000);
-        });
-    }
-    
-    /**
-     * Extract queue from current page
-     * @returns {array} Queue items from current page
-     */
-    extractQueueFromCurrentPage() {
-        const queue = [];
-        
-        try {
-            // Look for construction queue elements on current page
-            const constructionElements = document.querySelectorAll('.constructionQueue, .queue-item, [data-queue]');
-            
-            constructionElements.forEach(element => {
-                const buildingText = element.textContent || '';
-                const buildingMatch = buildingText.match(/(\w+)\s+.*Level\s+(\d+)/i);
+                console.log(`⏳ Smart decision: WAIT - ${decision.reason}`);
                 
-                if (buildingMatch) {
-                    const buildingName = buildingMatch[1].toLowerCase();
-                    const targetLevel = parseInt(buildingMatch[2]);
-                    
-                    queue.push({
-                        building: DataCollector.mapBuildingName(buildingName),
-                        target_level: targetLevel,
-                        status: 'in_progress'
-                    });
-                }
-            });
-            
-        } catch (error) {
-            console.error('❌ Failed to extract queue from current page:', error);
-        }
-        
-        return queue;
-    }
-    
-    /**
-     * Check if we can build a specific building
-     * @param {object} villageData - Village data
-     * @param {object} buildingPlan - Building plan
-     * @param {array} gameQueue - Current game queue
-     * @returns {boolean} Can build
-     */
-    canBuild(villageData, buildingPlan, gameQueue) {
-        try {
-            // Check if already built
-            const currentLevel = villageData.buildings[buildingPlan.building] || 0;
-            if (currentLevel >= buildingPlan.target_level) {
-                return false;
-            }
-            
-            // Check if already in game queue
-            const inGameQueue = gameQueue.some(item => 
-                item.building === buildingPlan.building && 
-                item.target_level === buildingPlan.target_level
-            );
-            if (inGameQueue) {
-                return false;
-            }
-            
-            // Check resources
-            const resources = villageData.resources || {};
-            const costs = DataHelper.calculateBuildingCosts(buildingPlan.building, buildingPlan.target_level);
-            
-            if (resources.wood < costs.wood || 
-                resources.stone < costs.stone || 
-                resources.iron < costs.iron) {
-                console.log(`❌ Not enough resources for ${buildingPlan.building} level ${buildingPlan.target_level}`);
-                return false;
-            }
-            
-            // Check population
-            if (resources.pop && resources.pop_max) {
-                const popNeeded = costs.pop || 0;
-                if (resources.pop + popNeeded > resources.pop_max) {
-                    console.log(`❌ Not enough population for ${buildingPlan.building} level ${buildingPlan.target_level}`);
-                    return false;
+                // Show dynamic check information
+                const nextCheckIn = Math.round((decision.nextCheck - Date.now()) / 1000 / 60);
+                console.log(`🔄 Next database check in: ${nextCheckIn} minutes`);
+                
+                if (decision.estimatedTime) {
+                    const waitTime = Math.round((decision.estimatedTime - Date.now()) / 1000 / 60);
+                    console.log(`⏰ Estimated completion time: ${waitTime} minutes`);
+                    console.log(`💡 Will check database periodically to catch early opportunities!`);
                 }
             }
-            
-            console.log(`✅ Can build ${buildingPlan.building} to level ${buildingPlan.target_level}`);
-            return true;
-            
+
         } catch (error) {
-            console.error('❌ Error checking if can build:', error);
-            return false;
+            console.error('❌ Error in smart check and build:', error);
+            this.nextCheckTime = Date.now() + 300000; // Wait 5 minutes on error
         }
     }
     
     /**
-     * Build a specific building
+     * Build a specific building using enhanced logic
      * @param {object} buildingPlan - Building plan
+     * @param {string} villageId - Village ID
      */
-    async build(buildingPlan) {
+    async build(buildingPlan, villageId) {
         try {
             console.log(`🏗️ Building ${buildingPlan.building} to level ${buildingPlan.target_level}...`);
             
-            // Make the building request
-            const success = await this.makeBuildRequest(buildingPlan);
+            // Get building ID for the game
+            const buildingId = this.enhancedDataManager.getBuildingId(buildingPlan.building);
+            
+            // Add building to queue using enhanced logic
+            const success = await this.enhancedDataManager.addBuildingToQueue(villageId, buildingId);
             
             if (success) {
                 console.log(`✅ Successfully started building ${buildingPlan.building} to level ${buildingPlan.target_level}`);
                 
                 // Update database
-                const villageId = game_data.village.id.toString();
                 const queue = this.database.getVillage('queue', villageId) || [];
                 queue.push({
                     building: buildingPlan.building,
@@ -302,56 +163,30 @@ class AutoBuildBot {
                 });
                 this.database.updateVillage('queue', villageId, queue);
                 
+                // Show success message
+                if (typeof UI !== 'undefined' && UI.SuccessMessage) {
+                    UI.SuccessMessage(`✅ Started building ${buildingPlan.building} to level ${buildingPlan.target_level}!`);
+                }
+                
+                // Schedule next check in 1 minute
+                this.nextCheckTime = Date.now() + 60000;
+                
             } else {
                 console.log(`❌ Failed to build ${buildingPlan.building} to level ${buildingPlan.target_level}`);
+                
+                // Show error message
+                if (typeof UI !== 'undefined' && UI.ErrorMessage) {
+                    UI.ErrorMessage(`❌ Failed to build ${buildingPlan.building} to level ${buildingPlan.target_level}`);
+                }
+                
+                // Wait 5 minutes before retry
+                this.nextCheckTime = Date.now() + 300000;
             }
             
         } catch (error) {
             console.error('❌ Error building:', error);
+            this.nextCheckTime = Date.now() + 300000; // Wait 5 minutes on error
         }
-    }
-    
-    /**
-     * Make the actual build request to the game
-     * @param {object} buildingPlan - Building plan
-     * @returns {Promise<boolean>} Success status
-     */
-    async makeBuildRequest(buildingPlan) {
-        return new Promise((resolve) => {
-            const villageId = game_data.village.id;
-            const buildingId = this.getBuildingId(buildingPlan.building, buildingPlan.target_level);
-            
-            if (!buildingId) {
-                resolve(false);
-                return;
-            }
-            
-            const url = `game.php?village=${villageId}&screen=main&action=upgrade_building&id=${buildingId}&type=main&h=${game_data.csrf}`;
-            
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    // Check if build was successful
-                    const success = !html.includes('error') && !html.includes('Error');
-                    resolve(success);
-                })
-                .catch(error => {
-                    console.error('❌ Build request failed:', error);
-                    resolve(false);
-                });
-        });
-    }
-    
-    /**
-     * Get building ID for specific building and level
-     * @param {string} building - Building name
-     * @param {number} level - Target level
-     * @returns {string} Building ID
-     */
-    getBuildingId(building, level) {
-        // This would need to be implemented based on game's building system
-        // For now, return a placeholder
-        return `${building}_${level}`;
     }
     
     /**
@@ -361,6 +196,10 @@ class AutoBuildBot {
         return {
             isRunning: this.isRunning,
             lastCheck: this.lastCheck,
+            nextCheckTime: this.nextCheckTime,
+            timeUntilNextCheck: this.nextCheckTime - Date.now(),
+            enhancedDataManager: this.enhancedDataManager ? this.enhancedDataManager.getStatus() : null,
+            smartCalculator: this.smartCalculator ? this.smartCalculator.getStatus() : null,
             settings: {
                 enabled: this.settings.get('autoBuildEnabled'),
                 interval: this.settings.get('checkInterval'),

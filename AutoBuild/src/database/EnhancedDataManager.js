@@ -1,210 +1,391 @@
 /**
- * Enhanced Data Manager for AutoBuild
- * Simple interface to work with the enhanced data collector
- * Provides easy access to village data for building decisions
+ * Enhanced Data Manager
+ * Integrates comprehensive data collection with security features and building queue logic
  */
 class EnhancedDataManager {
     constructor() {
-        this.lastDataUpdate = 0;
-        this.dataUpdateInterval = 5 * 60 * 1000; // 5 minutes
+        this.comprehensiveCollector = null;
+        this.buildingQueueLogic = null;
+        this.lastCollection = 0;
+        this.collectionInterval = 30000; // 30 seconds minimum between collections
     }
 
     /**
-     * Get comprehensive village data (fetches fresh data if needed)
-     * @param {string} villageId - Village ID to get data for
-     * @param {boolean} forceRefresh - Force fresh data collection
-     * @returns {Promise<Object>} Complete village data
+     * Initialize the enhanced data manager
      */
-    async getVillageData(villageId = game_data.village.id, forceRefresh = false) {
+    init() {
+        // Initialize comprehensive data collector
+        this.comprehensiveCollector = {
+            collectVillageData: window.collectComprehensiveData || this.fallbackCollector,
+            loadLatestData: window.loadComprehensiveData || this.fallbackLoader,
+            cleanupData: window.cleanupComprehensiveData || this.fallbackCleanup
+        };
+
+        // Initialize building queue logic
+        this.buildingQueueLogic = new TribalWarsBuildingQueueLogic();
+        
+        console.log('🔧 Enhanced Data Manager initialized');
+    }
+
+    /**
+     * Collect comprehensive village data with security features
+     * @param {string} villageId - Village ID
+     * @returns {Promise<object>} Comprehensive village data
+     */
+    async collectComprehensiveData(villageId) {
         try {
-            // Check if we have recent data
-            if (!forceRefresh && this.hasRecentData()) {
-                const existingData = await this.loadExistingData(villageId);
-                if (existingData) {
-                    console.log('📊 Using cached village data');
-                    return existingData;
+            // Check if enough time has passed since last collection
+            const now = Date.now();
+            if (now - this.lastCollection < this.collectionInterval) {
+                console.log('⏳ Waiting for collection interval...');
+                return null;
+            }
+
+            console.log(`🔍 Collecting comprehensive data for village ${villageId}...`);
+            
+            // Use the comprehensive collector if available
+            if (typeof this.comprehensiveCollector.collectVillageData === 'function') {
+                const data = await this.comprehensiveCollector.collectVillageData(villageId);
+                this.lastCollection = now;
+                return data;
+            } else {
+                // Fallback to basic collection
+                return await this.fallbackCollector(villageId);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error collecting comprehensive data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Load latest comprehensive data
+     * @param {string} villageId - Village ID
+     * @returns {Promise<object>} Latest data
+     */
+    async loadLatestData(villageId) {
+        try {
+            if (typeof this.comprehensiveCollector.loadLatestData === 'function') {
+                return await this.comprehensiveCollector.loadLatestData(villageId);
+            } else {
+                return await this.fallbackLoader(villageId);
+            }
+        } catch (error) {
+            console.error('❌ Error loading latest data:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Add building to queue using enhanced logic
+     * @param {string} villageId - Village ID
+     * @param {string} buildingId - Building ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async addBuildingToQueue(villageId, buildingId) {
+        try {
+            console.log(`🏗️ Adding ${buildingId} to queue in village ${villageId}...`);
+            
+            if (this.buildingQueueLogic) {
+                return await this.buildingQueueLogic.addBuildingToQueue(villageId, buildingId);
+            } else {
+                console.warn('⚠️ Building queue logic not available');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error adding building to queue:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get current queue status
+     * @param {string} villageId - Village ID
+     * @returns {Promise<object>} Queue status
+     */
+    async getQueueStatus(villageId) {
+        try {
+            if (this.buildingQueueLogic) {
+                return await this.buildingQueueLogic.getQueueStatus(villageId);
+            } else {
+                return { count: 0, maxCapacity: 5, hasSpace: true, items: [] };
+            }
+        } catch (error) {
+            console.error('❌ Error getting queue status:', error);
+            return { count: 0, maxCapacity: 5, hasSpace: true, items: [] };
+        }
+    }
+
+    /**
+     * Check if queue has space
+     * @param {string} villageId - Village ID
+     * @returns {Promise<boolean>} Has space
+     */
+    async hasQueueSpace(villageId) {
+        try {
+            if (this.buildingQueueLogic) {
+                return await this.buildingQueueLogic.hasQueueSpace(villageId);
+            } else {
+                return true; // Assume has space if logic not available
+            }
+        } catch (error) {
+            console.error('❌ Error checking queue space:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Remove building from queue
+     * @param {string} villageId - Village ID
+     * @param {string} cancelId - Cancel ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async removeBuildingFromQueue(villageId, cancelId) {
+        try {
+            if (this.buildingQueueLogic) {
+                return await this.buildingQueueLogic.removeBuildingFromQueue(villageId, cancelId);
+            } else {
+                console.warn('⚠️ Building queue logic not available');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error removing building from queue:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Fallback data collector (basic collection)
+     * @param {string} villageId - Village ID
+     * @returns {Promise<object>} Basic village data
+     */
+    async fallbackCollector(villageId) {
+        console.log('🔄 Using fallback data collector...');
+        
+        try {
+            // Use the existing DataCollector
+            const data = await DataCollector.collectAllData();
+            
+            // Transform to comprehensive format
+            return {
+                villageId: villageId,
+                villageName: game_data.village.name,
+                coordinates: game_data.village.x + '|' + game_data.village.y,
+                worldId: game_data.world,
+                playerId: game_data.player.id,
+                
+                // Transform existing data
+                troops: this.extractTroopsFromData(data),
+                resources: this.extractResourcesFromData(data),
+                buildings: this.extractBuildingsFromData(data),
+                
+                // Metadata
+                extractedAt: new Date().toISOString(),
+                serverTime: new Date().toISOString(),
+                dataVersion: '1.0-fallback'
+            };
+            
+        } catch (error) {
+            console.error('❌ Fallback collector failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Fallback data loader
+     * @param {string} villageId - Village ID
+     * @returns {Promise<object>} Loaded data
+     */
+    async fallbackLoader(villageId) {
+        console.log('🔄 Using fallback data loader...');
+        
+        try {
+            // Try to get data from database
+            const database = window.AutoBuilder?.getDatabase();
+            if (database) {
+                const villageData = database.getVillage('villages', villageId);
+                if (villageData) {
+                    return {
+                        type: 'comprehensive',
+                        timestamp: new Date().toISOString(),
+                        villageId: villageId,
+                        data: villageData
+                    };
                 }
             }
-
-            // Collect fresh data using enhanced collector
-            console.log('🔄 Collecting fresh village data...');
             
-            // Use the enhanced data collector if available
-            if (typeof window.collectComprehensiveDataEnhanced === 'function') {
-                await window.collectComprehensiveDataEnhanced(villageId);
-                this.lastDataUpdate = Date.now();
-                
-                // Load the fresh data
-                return await this.loadExistingData(villageId);
-            } else {
-                console.error('❌ Enhanced data collector not available');
-                return null;
-            }
-
+            return null;
         } catch (error) {
-            console.error('❌ Error getting village data:', error);
+            console.error('❌ Fallback loader failed:', error);
             return null;
         }
     }
 
     /**
-     * Check if we have recent data
-     * @returns {boolean} True if data is recent
-     */
-    hasRecentData() {
-        const timeSinceUpdate = Date.now() - this.lastDataUpdate;
-        return timeSinceUpdate < this.dataUpdateInterval;
-    }
-
-    /**
-     * Load existing data from the enhanced data collector's database
+     * Fallback cleanup function
      * @param {string} villageId - Village ID
-     * @returns {Promise<Object>} Existing data or null
+     * @returns {Promise<number>} Number of records cleaned
      */
-    async loadExistingData(villageId) {
-        try {
-            // Access the enhanced data collector's database
-            const DB_NAME = 'TribalWarsGameData';
-            const storeName = `village_${villageId}`;
-            
-            const db = await this.openDatabase(DB_NAME);
-            if (!db.objectStoreNames.contains(storeName)) {
-                return null;
-            }
-
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const index = store.index('timestamp');
-
-            const result = await new Promise((resolve, reject) => {
-                const request = index.openCursor(null, 'prev');
-                
-                request.onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        if (cursor.value.type === 'comprehensive_enhanced') {
-                            resolve(cursor.value);
-                        } else {
-                            cursor.continue();
-                        }
-                    } else {
-                        resolve(null);
-                    }
-                };
-                request.onerror = () => reject(request.error);
-            });
-
-            return result;
-
-        } catch (error) {
-            console.error('❌ Error loading existing data:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Open database
-     * @param {string} dbName - Database name
-     * @returns {Promise<IDBDatabase>} Database instance
-     */
-    openDatabase(dbName) {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(dbName);
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-        });
-    }
-
-    /**
-     * Get current buildings from village data
-     * @param {Object} villageData - Complete village data
-     * @returns {Object} Current buildings with levels
-     */
-    getCurrentBuildings(villageData) {
-        if (!villageData || !villageData.data || !villageData.data.buildings) {
-            return {};
-        }
-
-        const currentVillageId = villageData.villageId;
-        const villageBuildings = villageData.data.buildings.villages[currentVillageId];
+    async fallbackCleanup(villageId) {
+        console.log('🔄 Using fallback cleanup...');
         
-        return villageBuildings ? villageBuildings.buildings : {};
+        try {
+            const database = window.AutoBuilder?.getDatabase();
+            if (database) {
+                // Clear village data
+                database.updateVillage('villages', villageId, null);
+                database.updateVillage('queue', villageId, []);
+                return 2; // Assume 2 records cleaned
+            }
+            return 0;
+        } catch (error) {
+            console.error('❌ Fallback cleanup failed:', error);
+            return 0;
+        }
     }
 
     /**
-     * Get current building queue from village data
-     * @param {Object} villageData - Complete village data
-     * @returns {Array} Current building queue
+     * Extract troops data from basic data
+     * @param {object} data - Basic village data
+     * @returns {object} Troops data
      */
-    getCurrentQueue(villageData) {
-        if (!villageData || !villageData.data || !villageData.data.buildings) {
+    extractTroopsFromData(data) {
+        // This would need to be implemented based on available data
+        // For now, return empty troops object
+        return {
+            spear: 0,
+            sword: 0,
+            axe: 0,
+            spy: 0,
+            light: 0,
+            heavy: 0,
+            ram: 0,
+            catapult: 0,
+            snob: 0,
+            militia: 0
+        };
+    }
+
+    /**
+     * Extract resources data from basic data
+     * @param {object} data - Basic village data
+     * @returns {array} Resources data
+     */
+    extractResourcesFromData(data) {
+        if (!data || !data.resources) {
             return [];
         }
 
-        const currentVillageId = villageData.villageId;
-        const villageBuildings = villageData.data.buildings.villages[currentVillageId];
-        
-        return villageBuildings ? villageBuildings.queue : [];
+        const resources = data.resources;
+        return [{
+            villageId: data.info?.id,
+            name: data.info?.name || 'Unknown',
+            coordinates: data.info?.coords || 'Unknown',
+            points: 0,
+            resources: {
+                wood: resources.wood || 0,
+                stone: resources.stone || 0,
+                iron: resources.iron || 0,
+                total: (resources.wood || 0) + (resources.stone || 0) + (resources.iron || 0)
+            },
+            warehouse: {
+                capacity: resources.storage_max || 0,
+                usage: Math.max(resources.wood || 0, resources.stone || 0, resources.iron || 0),
+                usagePercent: 0
+            },
+            population: {
+                current: resources.pop || 0,
+                max: resources.pop_max || 0,
+                available: (resources.pop_max || 0) - (resources.pop || 0),
+                usagePercent: 0
+            }
+        }];
     }
 
     /**
-     * Get current resources from village data
-     * @param {Object} villageData - Complete village data
-     * @returns {Object} Current resources
+     * Extract buildings data from basic data
+     * @param {object} data - Basic village data
+     * @returns {object} Buildings data
      */
-    getCurrentResources(villageData) {
-        if (!villageData || !villageData.data || !villageData.data.resources) {
-            return { wood: 0, stone: 0, iron: 0 };
+    extractBuildingsFromData(data) {
+        if (!data || !data.buildings) {
+            return { villages: {}, totalVillages: 0, extractedAt: new Date().toISOString() };
         }
 
-        // Find current village in resources data
-        const currentVillageId = villageData.villageId;
-        const villageResources = villageData.data.resources.find(v => v.villageId === currentVillageId);
+        const buildings = data.buildings;
+        const villageId = data.info?.id;
         
-        return villageResources ? villageResources.resources : { wood: 0, stone: 0, iron: 0 };
-    }
-
-    /**
-     * Get current population from village data
-     * @param {Object} villageData - Complete village data
-     * @returns {Object} Population info
-     */
-    getCurrentPopulation(villageData) {
-        if (!villageData || !villageData.data || !villageData.data.resources) {
-            return { current: 0, max: 0, available: 0 };
-        }
-
-        // Find current village in resources data
-        const currentVillageId = villageData.villageId;
-        const villageResources = villageData.data.resources.find(v => v.villageId === currentVillageId);
-        
-        return villageResources ? villageResources.population : { current: 0, max: 0, available: 0 };
-    }
-
-    /**
-     * Get village info summary
-     * @param {Object} villageData - Complete village data
-     * @returns {Object} Village summary for easy access
-     */
-    getVillageSummary(villageData) {
-        if (!villageData) return null;
-
         return {
-            villageId: villageData.villageId,
-            coordinates: villageData.data.coordinates,
-            buildings: this.getCurrentBuildings(villageData),
-            queue: this.getCurrentQueue(villageData),
-            queueCount: this.getCurrentQueue(villageData).length,
-            hasQueueSpace: this.getCurrentQueue(villageData).length < 5,
-            resources: this.getCurrentResources(villageData),
-            population: this.getCurrentPopulation(villageData),
-            lastUpdated: villageData.timestamp
+            villages: {
+                [villageId]: {
+                    villageId: villageId,
+                    villageInfo: {
+                        name: data.info?.name || 'Unknown',
+                        coordinates: data.info?.coords || 'Unknown',
+                        continent: 'Unknown',
+                        points: 0
+                    },
+                    buildings: buildings,
+                    queue: data.activeQueue || [],
+                    queueLength: (data.activeQueue || []).length
+                }
+            },
+            totalVillages: 1,
+            extractedAt: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Get building ID mapping
+     * @param {string} buildingName - Building name
+     * @returns {string} Building ID
+     */
+    getBuildingId(buildingName) {
+        const buildingMap = {
+            'main': 'main',
+            'barracks': 'barracks',
+            'stable': 'stable',
+            'garage': 'garage',
+            'watchtower': 'watchtower',
+            'snob': 'snob',
+            'smith': 'smith',
+            'place': 'place',
+            'market': 'market',
+            'wood': 'wood',
+            'stone': 'stone',
+            'iron': 'iron',
+            'farm': 'farm',
+            'storage': 'storage',
+            'hide': 'hide',
+            'wall': 'wall'
+        };
+        
+        return buildingMap[buildingName] || buildingName;
+    }
+
+    /**
+     * Get status of enhanced data manager
+     * @returns {object} Status information
+     */
+    getStatus() {
+        return {
+            comprehensiveCollector: !!this.comprehensiveCollector,
+            buildingQueueLogic: !!this.buildingQueueLogic,
+            lastCollection: this.lastCollection,
+            collectionInterval: this.collectionInterval,
+            timeSinceLastCollection: Date.now() - this.lastCollection
         };
     }
 }
 
-// Export for use
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = EnhancedDataManager;
+}
+
+// Auto-initialize if run directly
 if (typeof window !== 'undefined') {
     window.EnhancedDataManager = EnhancedDataManager;
-    console.log('📊 Enhanced Data Manager loaded!');
+    console.log('🔧 Enhanced Data Manager loaded!');
 } 

@@ -9,6 +9,9 @@
 // @grant        GM_xmlhttpRequest
 // @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DatabaseManager.js
 // @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DataCollector.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/EnhancedDataManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/integration/ComprehensiveIntegration.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/SmartBuildCalculator.js
 // @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/AutoBuildBot.js
 // @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/ResourceMonitor.js
 // @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/QueueManager.js
@@ -26,6 +29,62 @@
 
 (function() {
     'use strict';
+    
+    // =============================================================================
+    // 🔍 COMPREHENSIVE DATA COLLECTOR INTEGRATION
+    // =============================================================================
+    
+    /**
+     * Load and integrate the comprehensive data collector
+     */
+    function loadComprehensiveDataCollector() {
+        // Check if comprehensive collector is available
+        if (typeof window.collectComprehensiveData === 'function') {
+            console.log('✅ Comprehensive data collector loaded');
+            return true;
+        }
+        
+        // Try to load from external source if not available
+        console.log('🔄 Loading comprehensive data collector...');
+        
+        const script = document.createElement('script');
+        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/main/TW_Utils_Templates/ComprehensiveVillageDataCollector.js';
+        script.onload = () => {
+            console.log('✅ Comprehensive data collector loaded externally');
+        };
+        script.onerror = () => {
+            console.warn('⚠️ Could not load comprehensive data collector externally');
+        };
+        document.head.appendChild(script);
+        
+        return false;
+    }
+    
+    /**
+     * Load and integrate the building queue logic
+     */
+    function loadBuildingQueueLogic() {
+        // Check if building queue logic is available
+        if (typeof window.TribalWarsBuildingQueueLogic === 'function') {
+            console.log('✅ Building queue logic loaded');
+            return true;
+        }
+        
+        // Try to load from external source if not available
+        console.log('🔄 Loading building queue logic...');
+        
+        const script = document.createElement('script');
+        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/main/TW_Utils_Templates/TribalWars_Building_Queue_Logic.js';
+        script.onload = () => {
+            console.log('✅ Building queue logic loaded externally');
+        };
+        script.onerror = () => {
+            console.warn('⚠️ Could not load building queue logic externally');
+        };
+        document.head.appendChild(script);
+        
+        return false;
+    }
     
     // =============================================================================
     // 🔍 INTEGRATED DATA COLLECTOR (from Helper.js)
@@ -224,37 +283,34 @@
                         const durationCell = cells[1];
                         const completionCell = cells[3];
                         
-                        if (buildingCell && durationCell && completionCell) {
-                            const buildingText = buildingCell.textContent.trim();
-                            const durationText = durationCell.textContent.trim();
-                            const completionText = completionCell.textContent.trim();
-                            
-                            if (durationText.includes(':') && (completionText.includes('today') || completionText.includes('tomorrow'))) {
-                                const queueItem = this.parseQueueItem(buildingText, durationText, completionText);
-                                if (queueItem) {
-                                    queueData.push(queueItem);
-                                }
-                            }
+                        const buildingText = buildingCell.textContent.trim();
+                        const durationText = durationCell.textContent.trim();
+                        const completionText = completionCell.textContent.trim();
+                        
+                        const queueItem = this.parseQueueItem(buildingText, durationText, completionText);
+                        if (queueItem) {
+                            queueData.push(queueItem);
                         }
                     }
                 });
                 
             } catch (error) {
-                console.error('❌ Failed to extract queue:', error);
+                console.error('❌ Failed to extract queue from document:', error);
             }
             
             return queueData;
         }
 
         /**
-         * Parse queue item from table row
-         * @param {string} buildingText - Building description
-         * @param {string} durationText - Duration remaining
-         * @param {string} completionText - Completion time
+         * Parse queue item from text
+         * @param {string} buildingText - Building text
+         * @param {string} durationText - Duration text
+         * @param {string} completionText - Completion text
          * @returns {object|null} Parsed queue item
          */
         static parseQueueItem(buildingText, durationText, completionText) {
             try {
+                // Extract building name and level
                 const buildingMatch = buildingText.match(/(\w+)\s+.*Level\s+(\d+)/i);
                 if (!buildingMatch) return null;
                 
@@ -264,9 +320,8 @@
                 return {
                     building: this.mapBuildingName(buildingName),
                     target_level: targetLevel,
-                    current_level: targetLevel - 1,
-                    remaining_duration: durationText,
-                    completion_text: completionText,
+                    duration: durationText,
+                    completion: completionText,
                     status: 'in_progress'
                 };
                 
@@ -277,22 +332,20 @@
         }
 
         /**
-         * Map building names to standard format
-         * @param {string} buildingName - Building name from game
+         * Map building name to standard format
+         * @param {string} buildingName - Building name
          * @returns {string} Standardized building name
          */
         static mapBuildingName(buildingName) {
-            const mapping = {
+            const buildingMap = {
                 'main': 'main',
                 'barracks': 'barracks',
                 'stable': 'stable',
                 'garage': 'garage',
-                'church': 'church',
                 'watchtower': 'watchtower',
                 'snob': 'snob',
                 'smith': 'smith',
                 'place': 'place',
-                'statue': 'statue',
                 'market': 'market',
                 'wood': 'wood',
                 'stone': 'stone',
@@ -300,439 +353,317 @@
                 'farm': 'farm',
                 'storage': 'storage',
                 'hide': 'hide',
-                'wall': 'wall',
-                'mine': 'iron',
-                'clay': 'stone',
-                'lumber': 'wood'
+                'wall': 'wall'
             };
             
-            return mapping[buildingName.toLowerCase()] || buildingName.toLowerCase();
+            return buildingMap[buildingName] || buildingName;
         }
     }
 
-    /**
-     * Simple Database for storing village data
-     */
+    // =============================================================================
+    // 🗄️ DATABASE SYSTEM
+    // =============================================================================
+
     class SimpleDB {
         static DATABASE_NAME = "Auto Builder";
-
-        /**
-         * Save village data
-         * @param {string} villageId - Village ID
-         * @param {object} villageData - Village data
-         * @returns {boolean} Success status
-         */
+        
         static saveVillage(villageId, villageData) {
             try {
-                let database = this.loadDatabase();
-                
-                if (!database) {
-                    database = {
-                        villages: {},
-                        settings: {
-                            created: Date.now(),
-                            version: "1.0"
-                        }
-                    };
-                }
-                
-                // Save village data
-                database.villages[villageId] = {
-                    ...villageData,
-                    lastUpdated: Date.now()
-                };
-                
-                database.settings.lastSaved = Date.now();
-                
-                // Save to localStorage
-                localStorage.setItem(this.DATABASE_NAME, JSON.stringify(database));
-                
-                console.log(`💾 Village ${villageId} saved successfully!`);
-                console.log(`📊 Database size: ${JSON.stringify(database).length} characters`);
-                
+                const key = `village_${villageId}`;
+                localStorage.setItem(key, JSON.stringify({
+                    data: villageData,
+                    timestamp: Date.now()
+                }));
+                console.log(`💾 Saved village ${villageId} data`);
                 return true;
-                
             } catch (error) {
-                console.error(`❌ Failed to save village ${villageId}:`, error);
+                console.error('❌ Failed to save village data:', error);
                 return false;
             }
         }
-
-        /**
-         * Load database
-         * @returns {object|null} Database object
-         */
-        static loadDatabase() {
+        
+        static loadVillage(villageId) {
             try {
-                const data = localStorage.getItem(this.DATABASE_NAME);
+                const key = `village_${villageId}`;
+                const data = localStorage.getItem(key);
                 return data ? JSON.parse(data) : null;
             } catch (error) {
-                console.error('❌ Failed to load database:', error);
+                console.error('❌ Failed to load village data:', error);
                 return null;
             }
         }
-
-        /**
-         * Get all villages
-         * @returns {object} All villages data
-         */
-        static getAllVillages() {
-            const database = this.loadDatabase();
-            return database ? database.villages : {};
+        
+        static loadDatabase() {
+            const database = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('village_')) {
+                    const villageId = key.replace('village_', '');
+                    database[villageId] = this.loadVillage(villageId);
+                }
+            }
+            return database;
         }
-
-        /**
-         * Get specific village
-         * @param {string} villageId - Village ID
-         * @returns {object|null} Village data
-         */
+        
+        static getAllVillages() {
+            return this.loadDatabase();
+        }
+        
         static getVillage(villageId) {
-            const database = this.loadDatabase();
-            return database && database.villages[villageId] ? database.villages[villageId] : null;
+            const data = this.loadVillage(villageId);
+            return data ? data.data : null;
         }
     }
 
-    /**
-     * COMMAND 1: Get all information and save it
-     */
+    // =============================================================================
+    // 🔍 DATA COLLECTION FUNCTIONS
+    // =============================================================================
+
     async function getInfo() {
-        console.log('🚀 COMMAND 1: Getting all information...');
-        console.log('═'.repeat(50));
+        const villageId = game_data.village.id;
+        const villageName = game_data.village.name;
+        const coords = `${game_data.village.x}|${game_data.village.y}`;
+        
+        console.log(`🔍 Getting info for village ${villageId} (${villageName}) at ${coords}`);
         
         try {
-            const villageId = game_data.village.id.toString();
+            // Try comprehensive data collection first
+            if (typeof window.collectComprehensiveData === 'function') {
+                console.log('🎯 Using comprehensive data collector...');
+                const comprehensiveData = await window.collectComprehensiveData(villageId);
+                if (comprehensiveData) {
+                    console.log('✅ Comprehensive data collected successfully!');
+                    return comprehensiveData;
+                }
+            }
             
-            // Collect all data
-            const villageData = await DataCollector.collectAllData();
+            // Fallback to basic data collection
+            console.log('🔄 Using basic data collector...');
+            const basicData = await DataCollector.collectAllData();
+            if (basicData) {
+                console.log('✅ Basic data collected successfully!');
+                return basicData;
+            }
             
-            if (villageData) {
-                // Save to database
-                const saveSuccess = SimpleDB.saveVillage(villageId, villageData);
+            console.log('❌ No data collected');
+            return null;
+            
+        } catch (error) {
+            console.error('❌ Error getting village info:', error);
+            return null;
+        }
+    }
+
+    function showInfo() {
+        getInfo().then(data => {
+            if (data) {
+                console.log('📊 Village Data:', data);
                 
-                if (saveSuccess) {
-                    console.log('✅ SUCCESS: All information collected and saved!');
-                    console.log(`📍 Village: ${villageData.info.name} (${villageData.info.coords})`);
-                    console.log(`📦 Resources: Wood:${villageData.resources.wood || 'N/A'} Stone:${villageData.resources.stone || 'N/A'} Iron:${villageData.resources.iron || 'N/A'}`);
-                    console.log(`🔧 Queue: ${villageData.activeQueue.length} items`);
-                    console.log(`⏰ Collected at: ${new Date(villageData.collectedAt).toLocaleString()}`);
-                } else {
-                    console.error('❌ Failed to save collected data');
+                // Show in UI if available
+                if (typeof UI !== 'undefined' && UI.SuccessMessage) {
+                    UI.SuccessMessage('✅ Village data collected successfully!');
                 }
             } else {
-                console.error('❌ Failed to collect village data');
+                console.log('❌ No village data available');
+                
+                if (typeof UI !== 'undefined' && UI.ErrorMessage) {
+                    UI.ErrorMessage('❌ Failed to collect village data');
+                }
             }
-            
-        } catch (error) {
-            console.error('❌ Command failed:', error);
-        }
-        
-        console.log('═'.repeat(50));
-    }
-
-    /**
-     * COMMAND 2: Show all saved information
-     */
-    function showInfo() {
-        console.log('📊 COMMAND 2: Showing saved information...');
-        console.log('═'.repeat(50));
-        
-        try {
-            const allVillages = SimpleDB.getAllVillages();
-            const villageCount = Object.keys(allVillages).length;
-            
-            if (villageCount === 0) {
-                console.log('❌ No villages in database yet');
-                console.log('💡 Run getInfo() first to collect data');
-                return;
-            }
-            
-            console.log(`🏰 AUTO BUILDER DATABASE (${villageCount} villages)`);
-            console.log('');
-            
-            Object.entries(allVillages).forEach(([villageId, villageData]) => {
-                console.log(`🏘️ VILLAGE ID: ${villageId} | NAME: ${villageData.info.name || 'Unknown'}`);
-                console.log('─'.repeat(40));
-                
-                // Basic info
-                if (villageData.info.coords) {
-                    console.log(`📌 Coordinates: ${villageData.info.coords}`);
-                }
-                
-                // Resources
-                if (villageData.resources && Object.keys(villageData.resources).length > 0) {
-                    const res = villageData.resources;
-                    console.log(`📦 Resources: Wood:${res.wood || 0} Stone:${res.stone || 0} Iron:${res.iron || 0}`);
-                    if (res.pop && res.pop_max) {
-                        console.log(`👥 Population: ${res.pop}/${res.pop_max}`);
-                    }
-                }
-                
-                // Key buildings
-                if (villageData.buildings && Object.keys(villageData.buildings).length > 0) {
-                    const buildings = villageData.buildings;
-                    const keyBuildings = [];
-                    if (buildings.main) keyBuildings.push(`HQ:${buildings.main}`);
-                    if (buildings.barracks) keyBuildings.push(`Barracks:${buildings.barracks}`);
-                    if (buildings.farm) keyBuildings.push(`Farm:${buildings.farm}`);
-                    if (buildings.wall) keyBuildings.push(`Wall:${buildings.wall}`);
-                    
-                    if (keyBuildings.length > 0) {
-                        console.log(`🏗️ Key Buildings: ${keyBuildings.join(' ')}`);
-                    }
-                }
-                
-                // Active queue
-                if (villageData.activeQueue && villageData.activeQueue.length > 0) {
-                    console.log(`🔧 Active Queue (${villageData.activeQueue.length} items):`);
-                    villageData.activeQueue.forEach((item, index) => {
-                        console.log(`   ${index + 1}. ${item.building} Level ${item.target_level} (${item.remaining_duration || 'Unknown'})`);
-                    });
-                } else {
-                    console.log('🔧 No buildings in queue');
-                }
-                
-                // Last updated
-                if (villageData.lastUpdated) {
-                    console.log(`⏰ Last Updated: ${new Date(villageData.lastUpdated).toLocaleString()}`);
-                }
-                
-                console.log('─'.repeat(40));
-                console.log('');
-            });
-            
-        } catch (error) {
-            console.error('❌ Failed to show information:', error);
-        }
-        
-        console.log('═'.repeat(50));
-    }
-
-    // Make functions globally available
-    window.getInfo = getInfo;
-    window.showInfo = showInfo;
-    window.DataCollector = DataCollector;
-    window.SimpleDB = SimpleDB;
-    
-    // Safety check - ensure we don't interfere with game loading
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            // Wait a bit more to ensure game is fully loaded
-            setTimeout(() => {
-                initializeAutoBuilder();
-            }, 1000);
         });
-    } else {
-        // Page already loaded, wait a bit for game to settle
-        setTimeout(() => {
-            initializeAutoBuilder();
-        }, 1000);
     }
-    
+
+    // =============================================================================
+    // 🔄 AUTO REFRESH SYSTEM
+    // =============================================================================
+
     function scheduleVillageDataRefresh() {
-        const db = window.AutoBuilder.getDatabase();
         async function refreshAll(showMsg) {
-            const villages = db.getAllVillages('villages');
-            let refreshed = 0;
-            for (const villageId of Object.keys(villages)) {
-                try {
-                    const data = await DataCollector.collectAllData();
-                    if (data) {
-                        db.updateVillage('villages', villageId, data);
-                        refreshed++;
+            try {
+                console.log('🔄 Refreshing village data...');
+                
+                // Try comprehensive data collection
+                if (typeof window.collectComprehensiveData === 'function') {
+                    const villageId = game_data.village.id;
+                    const comprehensiveData = await window.collectComprehensiveData(villageId);
+                    if (comprehensiveData) {
+                        console.log('✅ Comprehensive data refreshed successfully!');
+                        if (showMsg && typeof UI !== 'undefined' && UI.SuccessMessage) {
+                            UI.SuccessMessage('✅ Village data refreshed with comprehensive collector!');
+                        }
+                        return;
                     }
-                } catch (err) {
-                    console.error(`❌ Failed to refresh data for village ${villageId}:`, err);
+                }
+                
+                // Fallback to basic collection
+                const data = await getInfo();
+                if (data) {
+                    console.log('✅ Basic data refreshed successfully!');
+                    if (showMsg && typeof UI !== 'undefined' && UI.SuccessMessage) {
+                        UI.SuccessMessage('✅ Village data refreshed!');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error refreshing village data:', error);
+                if (showMsg && typeof UI !== 'undefined' && UI.ErrorMessage) {
+                    UI.ErrorMessage('❌ Failed to refresh village data');
                 }
             }
-            if (showMsg) alert(`Villages refreshed: ${refreshed}`);
         }
-        // Run immediately on load
-        refreshAll(false);
-        // Then every 1 hour
-        setInterval(() => refreshAll(false), 60 * 60 * 1000);
-        // Expose for manual refresh
-        window.refreshAllVillages = () => refreshAll(true);
+        
+        return refreshAll;
     }
+
+    // =============================================================================
+    // 🏗️ MAIN AUTO BUILDER SYSTEM
+    // =============================================================================
 
     function initializeAutoBuilder() {
-        try {
-            // Check if we're on a Tribal Wars page
-            if (!window.location.href.includes('tribalwars') && 
-                !window.location.href.includes('klanhaboru') && 
-                !window.location.href.includes('tribalwars.net')) {
-                console.log('🚫 Not on Tribal Wars page, skipping AutoBuilder initialization');
-                return;
-            }
-            
-            // Check if game_data exists (Tribal Wars game object)
-            if (typeof game_data === 'undefined') {
-                console.log('⏳ Waiting for Tribal Wars game to load...');
-                setTimeout(initializeAutoBuilder, 2000);
-                return;
-            }
-            
-            // Initialize Auto Builder
-            class AutoBuilder {
-                constructor() {
-                    this.isInitialized = false;
-                    this.settings = new Settings();
-                    this.database = new DatabaseManager();
-                    this.collector = new DataCollector();
-                    this.bot = new AutoBuildBot();
-                    this.monitor = new ResourceMonitor();
-                    this.queueManager = new QueueManager();
-                    this.ui = {
-                        settings: new SettingsPanel(),
-                        queue: new BuildQueueUI(),
-                        village: new VillageManager(),
-                        templates: new TemplateManager()
-                    };
-                }
-                
-                async init() {
-                    try {
-                        console.log('🏗️ Initializing Auto Builder...');
+        console.log('🚀 Initializing Auto Builder...');
+        
+        // Load external components
+        loadComprehensiveDataCollector();
+        loadBuildingQueueLogic();
+        
+        // Wait a bit for components to load
+        setTimeout(() => {
+            try {
+                // Initialize the main AutoBuilder class
+                class AutoBuilder {
+                    constructor() {
+                        this.bot = null;
+                        this.database = null;
+                        this.settings = null;
+                        this.ui = null;
+                        this.enhancedDataManager = null;
+                    }
+                    
+                    async init() {
+                        console.log('🔧 Initializing AutoBuilder components...');
                         
                         // Initialize database
-                        await this.database.init();
+                        this.database = SimpleDB;
                         
-                        // Load settings
-                        this.settings.load();
+                        // Initialize settings
+                        this.settings = new Settings();
+                        this.settings.init();
                         
-                        // Initialize UI with error handling
-                        try {
-                            this.ui.settings.init();
-                        } catch (error) {
-                            console.warn('⚠️ Settings Panel initialization failed:', error);
+                        // Initialize comprehensive integration
+                        this.comprehensiveIntegration = new ComprehensiveIntegration();
+                        await this.comprehensiveIntegration.init();
+                        
+                        // Initialize enhanced data manager
+                        this.enhancedDataManager = new EnhancedDataManager();
+                        this.enhancedDataManager.init();
+                        
+                        // Initialize bot
+                        this.bot = new AutoBuildBot();
+                        this.bot.init();
+                        
+                        // Initialize UI
+                        this.ui = new SettingsPanel();
+                        this.ui.init();
+                        
+                        console.log('✅ AutoBuilder initialized successfully!');
+                        
+                        // Show welcome message
+                        if (typeof UI !== 'undefined' && UI.SuccessMessage) {
+                            UI.SuccessMessage('🤖 Auto Builder loaded successfully! Check the settings panel to get started.');
                         }
-                        
-                        try {
-                            this.ui.queue.init();
-                        } catch (error) {
-                            console.warn('⚠️ Build Queue UI initialization failed:', error);
-                        }
-                        
-                        try {
-                            this.ui.village.init();
-                        } catch (error) {
-                            console.warn('⚠️ Village Manager initialization failed:', error);
-                        }
-                        
-                        try {
-                            this.ui.templates.init();
-                        } catch (error) {
-                            console.warn('⚠️ Template Manager initialization failed:', error);
-                        }
-                        
-                        // Start bot if enabled
-                        if (this.settings.get('autoBuildEnabled')) {
-                            this.bot.start();
-                        }
-                        
-                        // Start resource monitoring (passive collection only)
-                        this.monitor.start();
-                        
-                        this.isInitialized = true;
-                        console.log('✅ Auto Builder initialized successfully!');
-                        
-                    } catch (error) {
-                        console.error('❌ Failed to initialize Auto Builder:', error);
                     }
+                    
+                    getBot() { return this.bot; }
+                    getDatabase() { return this.database; }
+                    getSettings() { return this.settings; }
+                    getUI() { return this.ui; }
+                    getEnhancedDataManager() { return this.enhancedDataManager; }
+                    getComprehensiveIntegration() { return this.comprehensiveIntegration; }
                 }
                 
-                // Public API
-                getBot() { return this.bot; }
-                getDatabase() { return this.database; }
-                getSettings() { return this.settings; }
-                getUI() { return this.ui; }
+                // Create global instance
+                window.AutoBuilder = new AutoBuilder();
+                window.AutoBuilder.init();
+                
+            } catch (error) {
+                console.error('❌ Error initializing AutoBuilder:', error);
             }
-            
-            // Global instance
-            window.AutoBuilder = new AutoBuilder();
-            window.AutoBuilder.init();
-            
-            // Add global test function for debugging
-            window.testAutoBuilder = function() {
-                console.log('🧪 Testing AutoBuilder...');
-                console.log('AutoBuilder object:', window.AutoBuilder);
-                console.log('AutoBuilder UI:', window.AutoBuilder ? window.AutoBuilder.getUI() : 'Not available');
-                console.log('Settings:', window.AutoBuilder ? window.AutoBuilder.getSettings() : 'Not available');
-                
-                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
-                    console.log('✅ AutoBuilder UI is available, testing show()...');
-                    window.AutoBuilder.getUI().settings.show();
-                } else {
-                    console.error('❌ AutoBuilder UI not available');
-                }
-            };
-            
-            // Only inject the menu bar button
-            injectAutoBuilderButton();
-            // Schedule village data refresh every hour and on start
-            scheduleVillageDataRefresh();
-        } catch (error) {
-            console.error('❌ AutoBuilder initialization failed:', error);
-        }
+        }, 1000);
     }
+
+    // =============================================================================
+    // 🎛️ UI INJECTION
+    // =============================================================================
 
     function injectAutoBuilderButton() {
-        // Find the menu row and all menu-side <td>s
-        const menuRow = document.querySelector('tr#menu_row, tr.menu-row, tr');
-        if (!menuRow) {
-            console.log('🔍 Menu row not found, retrying in 1 second...');
-            setTimeout(injectAutoBuilderButton, 1000);
-            return;
-        }
-        const tds = Array.from(menuRow.querySelectorAll('td.menu-side'));
-        // Find the loading bar <td>
-        const loadingTd = tds.find(td => td.querySelector('#loading_content'));
-        if (!loadingTd) {
-            console.log('🔍 Loading bar <td> not found, retrying in 1 second...');
-            setTimeout(injectAutoBuilderButton, 1000);
-            return;
-        }
-        // Check if already injected
-        if (document.getElementById('autobuilder-menu-btn')) {
-            console.log('✅ AutoBuilder menu button already exists');
-            return;
-        }
-        // Create the <td> and button
-        const autobuilderTd = document.createElement('td');
-        autobuilderTd.className = 'menu-side';
-        autobuilderTd.id = 'autobuilder-menu-btn';
-        // Use a matching <a> with icon and tooltip
-        const autobuilderA = document.createElement('a');
-        autobuilderA.href = '#';
-        autobuilderA.title = 'AutoBuilder';
-        autobuilderA.style.display = 'inline-block';
-        autobuilderA.style.height = '32px';
-        autobuilderA.style.width = '32px';
-        autobuilderA.style.margin = '0 2px';
-        autobuilderA.style.verticalAlign = 'middle';
-        autobuilderA.innerHTML = '<img src="https://dsen.innogamescdn.com/asset/7fe7ab60/graphic/buildings/mid/main3.png" alt="AutoBuilder" style="width:28px;height:28px;vertical-align:middle;">';
-        autobuilderA.onclick = (e) => {
-            e.preventDefault();
-            try {
-                if (window.AutoBuilder && window.AutoBuilder.getUI && window.AutoBuilder.getUI().settings) {
-                    window.AutoBuilder.getUI().settings.show();
-                } else {
-                    alert('AutoBuilder UI not available! Please refresh the page.');
-                }
-            } catch (err) {
-                alert('AutoBuilder UI failed to open! Error: ' + err.message);
+        // Create the main button
+        const button = document.createElement('div');
+        button.id = 'auto-builder-button';
+        button.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 9999;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 25px;
+                cursor: pointer;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                font-weight: bold;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                user-select: none;
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                🤖 Auto Builder
+            </div>
+        `;
+        
+        button.addEventListener('click', () => {
+            if (window.AutoBuilder && window.AutoBuilder.getUI()) {
+                window.AutoBuilder.getUI().toggle();
+            } else {
+                console.log('⚠️ AutoBuilder UI not ready yet');
             }
-        };
-        autobuilderTd.appendChild(autobuilderA);
-        // Insert before the loading bar <td>
-        loadingTd.parentNode.insertBefore(autobuilderTd, loadingTd);
-        console.log('✅ AutoBuilder menu button inserted before loading bar');
+        });
+        
+        document.body.appendChild(button);
+        console.log('🎛️ Auto Builder button injected');
     }
-    
-})(); 
 
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('autobuilder-close')) {
-        const panel = e.target.closest('.autobuilder-panel');
-        if (panel) panel.style.display = 'none';
+    // =============================================================================
+    // 🚀 STARTUP
+    // =============================================================================
+
+    // Wait for page to load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAutoBuilder();
+            injectAutoBuilderButton();
+        });
+    } else {
+        initializeAutoBuilder();
+        injectAutoBuilderButton();
     }
-}); 
+
+    // =============================================================================
+    // 🌐 GLOBAL FUNCTIONS
+    // =============================================================================
+
+    // Make functions globally available
+    window.getVillageInfo = getInfo;
+    window.showVillageInfo = showInfo;
+    window.refreshVillageData = scheduleVillageDataRefresh();
+    
+    // Enhanced data collection functions
+    window.collectComprehensiveData = window.collectComprehensiveData || null;
+    window.loadComprehensiveData = window.loadComprehensiveData || null;
+    window.cleanupComprehensiveData = window.cleanupComprehensiveData || null;
+    
+    console.log('🚀 Auto Builder script loaded successfully!');
+    console.log('📊 Available functions: getVillageInfo(), showVillageInfo(), refreshVillageData()');
+    console.log('🤖 Auto Builder will initialize automatically');
+
+})(); 
