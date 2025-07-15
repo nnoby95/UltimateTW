@@ -215,6 +215,47 @@ function sanitizeVillageData(data) {
 }
 ```
 
+## twSDK Data Formats
+
+### World Data Arrays (from twSDK)
+```javascript
+// Village data format: [villageId, villageName, x, y, playerId, points, type]
+// Player data format: [playerId, playerName, tribeId, villages, points, rank]  
+// Tribe data format: [tribeId, tribeName, tribeTag, players, villages, points, allPoints, rank]
+// Conquest data format: [villageId, timestamp, newPlayerId, oldPlayerId, oldTribeId, newTribeId, points]
+```
+
+### DSUtil Building Object
+```javascript
+{
+    type: string,           // Building type
+    level: number,          // Current level
+    maxLevel: number,       // Maximum level
+    cost: {                 // Resource costs
+        wood: number,
+        stone: number, 
+        iron: number
+    },
+    time: number,           // Build time in seconds
+    requirements: object,   // Building prerequisites
+    points: number,         // Points provided
+    population: number      // Population used/provided
+}
+```
+
+### Building Requirements Object
+```javascript
+{
+    "barracks": { main: 3 },
+    "stable": { main: 10, barracks: 5, smith: 5 },
+    "garage": { main: 10, smith: 10 },
+    "snob": { main: 20, market: 10, smith: 20 },
+    "smith": { main: 5, barracks: 1 },
+    "market": { main: 3, storage: 2 },
+    "wall": { barracks: 1 }
+}
+```
+
 ## Database Schema (if using local storage)
 ```sql
 -- Villages table
@@ -243,5 +284,5 @@ CREATE TABLE resources (
 ```
 
 Last Updated: 2024-12-19
-Updated: Corrected building and unit data based on actual TribalWars game data
+Updated: Added twSDK data formats and DSUtil building objects
 Created: Initial data structures documentation 

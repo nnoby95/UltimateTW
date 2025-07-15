@@ -109,25 +109,40 @@ const unitFarmSpaces = {
 - Level 3 Main Building: 100 farm space
 - Formula: `80 + (level - 1) * 10`
 
-### Building Requirements
+### Building Requirements (Complete from DSUtil.js)
 **Purpose**: Understanding building prerequisites
 **Building Dependencies**:
 ```javascript
+buildingReqirementsMet(buildings, type) {
+    switch (type) {
+    case "barracks": return (buildings["main"] >= 3)
+    case "stable": return (buildings["main"] >= 10 && buildings["barracks"] >= 5 && buildings["smith"] >= 5)
+    case "garage": return (buildings["main"] >= 10 && buildings["smith"] >= 10)
+    case "snob": return (buildings["main"] >= 20 && buildings["market"] >= 10 && buildings["smith"] >= 20)
+    case "smith": return (buildings["main"] >= 5 && buildings["barracks"] >= 1)
+    case "market": return (buildings["main"] >= 3 && buildings["storage"] >= 2)
+    case "wall": return (buildings["barracks"] >= 1)
+    }
+}
+```
+
+**Complete Building Requirements**:
+```javascript
 const buildingRequirements = {
   barracks: { main: 3 },
-  stable: { main: 3, barracks: 1 },
-  garage: { main: 3, stable: 1 },
-  smith: { main: 3, barracks: 1 },
+  stable: { main: 10, barracks: 5, smith: 5 },
+  garage: { main: 10, smith: 10 },
+  smith: { main: 5, barracks: 1 },
   church: { main: 3, barracks: 1 },
   watchtower: { main: 1 },
   place: { main: 1 },
-  market: { main: 3, place: 1 },
+  market: { main: 3, storage: 2 },
   statue: { main: 1 },
-  wall: { main: 1 },
+  wall: { barracks: 1 },
   storage: { main: 1 },
   hide: { main: 1 },
   farm: { main: 1 },
-  snob: { main: 15, church: 1 }
+  snob: { main: 20, market: 10, smith: 20 }
 };
 ```
 

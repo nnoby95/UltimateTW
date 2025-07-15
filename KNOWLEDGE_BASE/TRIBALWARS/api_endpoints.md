@@ -112,6 +112,65 @@ const userAgents = [
 ];
 ```
 
+## twSDK Library API (89+ Methods)
+
+### Data Access Methods
+```javascript
+// World data (cached for 1 hour)
+await twSDK.worldDataAPI('village')     // Get all villages
+await twSDK.worldDataAPI('player')      // Get all players  
+await twSDK.worldDataAPI('ally')        // Get all tribes
+await twSDK.worldDataAPI('conquer')     // Get conquest data
+
+// Distance calculations
+twSDK.calculateDistance('123|456', '789|012')
+twSDK.calculateDistanceFromCurrentVillage(coord)
+await twSDK.calculateTimesByDistance(distance)
+```
+
+### Coordinate Processing
+```javascript
+twSDK.getCoordFromString(string)                    // Extract first coordinate
+twSDK.getLastCoordFromString(string)               // Extract last coordinate
+twSDK.getContinentByCoord(coord)                   // Get continent number
+twSDK.filterVillagesByPlayerIds(playerIds, villages) // Filter villages
+```
+
+### UI Creation Methods
+```javascript
+twSDK.renderFixedWidget(body, id, class, style, width, name) // Floating widget
+twSDK.renderBoxWidget(body, id, class, style)      // Inline widget
+twSDK.buildUnitsPicker(selected, ignore, type)     // Unit selection interface
+```
+
+### Utility Methods
+```javascript
+twSDK.formatAsNumber(number)                       // Format with thousands separators
+twSDK.secondsToHms(timestamp)                      // Convert seconds to HH:MM:SS
+twSDK.copyToClipboard(string)                      // Copy text to clipboard
+twSDK.getServerDateTime()                          // Get current server time
+twSDK.csvToArray(strData, delimiter)               // Parse CSV data
+```
+
+### Initialization Pattern
+```javascript
+await twSDK.init({
+    scriptData: { name: 'My Script', version: '1.0.0', author: 'Developer' },
+    allowedMarkets: ['en', 'de'],
+    allowedScreens: ['overview'],
+    isDebug: true,
+    enableCountApi: true
+});
+```
+
+## World Data Formats (from twSDK)
+```javascript
+// Village data: [villageId, villageName, x, y, playerId, points, type]
+// Player data: [playerId, playerName, tribeId, villages, points, rank]  
+// Tribe data: [tribeId, tribeName, tribeTag, players, villages, points, allPoints, rank]
+// Conquest data: [villageId, timestamp, newPlayerId, oldPlayerId, oldTribeId, newTribeId, points]
+```
+
 ## Authentication
 **Session Management**: Cookies required for authenticated requests
 **Login Flow**: POST to login endpoint with credentials
@@ -123,5 +182,5 @@ const userAgents = [
 - **Recommended delay**: 1-3 seconds between requests
 
 Last Updated: 2024-12-19
-Updated: Corrected API endpoints and added World Data API based on actual TribalWars game data
+Updated: Added complete twSDK API (89+ methods) and world data formats
 Created: Initial API endpoints documentation 

@@ -59,7 +59,76 @@ function calculateFarmSpace(units) {
 }
 ```
 
-### Building Cost Calculation
+## DSUtil Library Calculations (Real Working Formulas)
+
+### Building Cost Calculation (from DSUtil.js)
+```javascript
+// Resource cost calculation
+buildCost(building, lvl, res) {
+    return Math.round((this.buildConf[building][res]) * 
+           (Math.pow(this.buildConf[building][res + '_factor'], (parseInt(lvl) - 1))));
+}
+
+// Build time with HQ reduction
+buildTime(building, lvl, hqlvl) {
+    let build_time = this.buildConf[building]['build_time'] / this.speed;
+    let hq_factor = this.hqFactor(hqlvl);
+    let calculated_time = hq_factor * build_time * (min_times[lvl - 1]);
+    return Math.round(calculated_time);
+}
+
+// HQ factor calculation
+hqFactor(lvl) {
+    return Math.pow(1.05, (-this.checklvl(lvl, 'main')));
+}
+```
+
+### Resource Production (Real Production Rates)
+```javascript
+// Production by building level (resources per hour on 1x speed)
+TERMELES = [5, 30, 35, 41, 47, 55, 64, 74, 86, 100, 117, 136, 158, 184, 214, 249, 289, 337, 391, 455, 530, 616, 717, 833, 969, 1127, 1311, 1525, 1774, 2063, 2400]
+
+// Storage capacity by level
+getStorage(lvl) {
+    let storage_values = [813, 1000, 1229, 1512, 1859, 2285, 2810, 3454, 4247, 5222, 6420, 7893, 9705, 11932, 14670, 18037, 22177, 27266, 33523, 41217, 50675, 62305, 76604, 94184, 115798, 142373, 175047, 215219, 264611, 325337, 400000];
+    return storage_values[this.checklvl(lvl, 'storage')];
+}
+
+// Farm capacity by level
+getFarm(lvl) {
+    let farm_values = [205, 240, 281, 330, 386, 453, 531, 622, 729, 855, 1002, 1175, 1377, 1614, 1891, 2217, 2598, 3046, 3570, 4184, 4904, 5748, 6737, 7897, 9256, 10849, 12716, 14904, 17470, 20476, 24000];
+    return farm_values[this.checklvl(lvl, 'farm')];
+}
+```
+
+### Building Points (Complete Arrays)
+```javascript
+buildingPoints: {
+    main: [10, 2, 2, 3, 4, 4, 5, 6, 7, 9, 10, 12, 15, 18, 21, 26, 31, 37, 44, 53, 64, 77, 92, 110, 133, 159, 191, 229, 274, 330],
+    barracks: [16, 3, 4, 5, 5, 7, 8, 9, 12, 14, 16, 20, 24, 28, 34, 42, 49, 59, 71, 85, 102, 123, 147, 177, 212],
+    // ... complete point values for all buildings
+}
+```
+
+### Unit Farm Space (Accurate Values)
+```javascript
+unitsFarmSpace: {
+    spear: 1, sword: 1, axe: 1, archer: 1, spy: 2,
+    light: 4, marcher: 5, heavy: 6, ram: 5, 
+    catapult: 8, knight: 10, snob: 100
+}
+```
+
+### Village Analysis Methods
+```javascript
+DSUtil.popUsed(buildingType, level)               // Population used by building
+DSUtil.popUsedVillage(buildings)                  // Total village population
+DSUtil.pointsVillage(buildings)                   // Total village points
+DSUtil.getBuildingObj(type, lvl, hqlvl)           // Complete building analysis
+DSUtil.buildingReqirementsMet(buildings, type)    // Check build requirements
+```
+
+### Building Cost Calculation (Legacy)
 **Formula**: `base_cost * (level + 1) ^ 1.5`
 **Base Costs** (Main Building):
 - Level 1: 70 wood, 40 stone, 60 iron

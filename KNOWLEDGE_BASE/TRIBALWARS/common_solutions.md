@@ -132,6 +132,102 @@ class RequestQueue {
 }
 ```
 
+## Proven DOM Manipulation Methods
+
+### Rate Limiting Variables (MUST be global scope)
+```javascript
+let actionBusy = false;
+let lastActionTime = 0;
+
+function performGameAction(parameters) {
+    // Rate limiting check
+    if (actionBusy || (Date.now() - lastActionTime < 200)) {
+        return;
+    }
+    
+    actionBusy = true;
+    lastActionTime = Date.now();
+    
+    // Open game page in new tab
+    const gameTab = window.open(gamePageUrl, '_blank');
+    
+    // Wait for page load, then manipulate DOM
+    setTimeout(() => {
+        try {
+            // DOM manipulation code here
+            const form = gameTab.document.forms.units;
+            form.axe.value = axes;
+            form.attack.click();
+        } catch (e) {
+            console.error('Action failed:', e);
+            actionBusy = false;
+        }
+    }, 3000);
+}
+```
+
+### Safe DOM Scraping
+```javascript
+// Global rate limiting system
+let isRequestActive = false;
+let lastRequestTime = 0;
+const MIN_DELAY_BETWEEN_REQUESTS = 5000;
+
+async function safeRequest(url) {
+    // Wait if another request is active
+    while (isRequestActive) {
+        await sleep(100);
+    }
+    
+    // Ensure minimum time between requests
+    const timeSinceLastRequest = Date.now() - lastRequestTime;
+    if (timeSinceLastRequest < MIN_DELAY_BETWEEN_REQUESTS) {
+        const waitTime = MIN_DELAY_BETWEEN_REQUESTS - timeSinceLastRequest;
+        await sleep(waitTime);
+    }
+    
+    isRequestActive = true;
+    lastRequestTime = Date.now();
+    
+    try {
+        const response = await fetch(url);
+        const html = await response.text();
+        return new DOMParser().parseFromString(html, 'text/html');
+    } finally {
+        isRequestActive = false;
+    }
+}
+```
+
+## What Works vs What Doesn't
+
+### ✅ PROVEN WORKING METHODS
+- Opening actual game pages in new tabs
+- Manipulating form.fieldName.value
+- Using element.click() on buttons
+- Waiting for page loads with setTimeout
+- Multi-step automation (rally → confirm)
+
+### ❌ METHODS THAT DON'T WORK
+- Direct HTTP POST to game endpoints
+- AJAX calls to game.php
+- Custom form submissions
+- Skipping the rally point step
+
+## Anti-Detection Strategies
+
+### Browser Restrictions
+- **Global lock**: Only one request at a time
+- **Minimum delays**: 5+ seconds between requests looks human
+- **Random delays**: 1-3 second processing time
+- **Error handling**: Graceful failure required
+
+### Human-like Behavior
+- **Variable delays**: Random timing between actions
+- **Realistic patterns**: Mimic human clicking behavior
+- **Session management**: Proper cookie handling
+- **Error recovery**: Graceful handling of failures
+
 ### Data Parsing
 **Problem**: Extracting data from HTML responses
 **Solution**: Robust DOM parsing with error handling
