@@ -7,24 +7,24 @@
 // @include      https://*.tribalwars.net/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DatabaseManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/DataCollector.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/database/EnhancedDataManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/integration/ComprehensiveIntegration.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/SmartBuildCalculator.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/AutoBuildBot.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/ResourceMonitor.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/bot/QueueManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/SettingsPanel.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/BuildQueueUI.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/VillageManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/ui/TemplateManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/DataHelper.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/BuildingCosts.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/TimeUtils.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/utils/GameUtils.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/config/Settings.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/main/AutoBuild/src/config/BuildingConfig.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/database/DatabaseManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/database/DataCollector.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/database/EnhancedDataManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/integration/ComprehensiveIntegration.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/bot/SmartBuildCalculator.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/bot/AutoBuildBot.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/bot/ResourceMonitor.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/bot/QueueManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/ui/SettingsPanel.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/ui/BuildQueueUI.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/ui/VillageManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/ui/TemplateManager.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/utils/DataHelper.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/utils/BuildingCosts.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/utils/TimeUtils.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/utils/GameUtils.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/config/Settings.js
+// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/src/config/BuildingConfig.js
 // ==/UserScript==
 
 (function() {
@@ -48,7 +48,7 @@
         console.log('🔄 Loading comprehensive data collector...');
         
         const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/main/TW_Utils_Templates/ComprehensiveVillageDataCollector.js';
+        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/TW_Utils_Templates/ComprehensiveVillageDataCollector.js';
         script.onload = () => {
             console.log('✅ Comprehensive data collector loaded externally');
         };
@@ -74,7 +74,7 @@
         console.log('🔄 Loading building queue logic...');
         
         const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/main/TW_Utils_Templates/TribalWars_Building_Queue_Logic.js';
+        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/AutoBuild/TW_Utils_Templates/TribalWars_Building_Queue_Logic.js';
         script.onload = () => {
             console.log('✅ Building queue logic loaded externally');
         };
