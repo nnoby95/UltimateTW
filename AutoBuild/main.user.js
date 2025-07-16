@@ -7,28 +7,919 @@
 // @include      https://*.tribalwars.net/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/database/DatabaseManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/database/DataCollector.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/database/EnhancedDataManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/integration/ComprehensiveIntegration.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/bot/SmartBuildCalculator.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/bot/AutoBuildBot.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/bot/ResourceMonitor.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/bot/QueueManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/ui/SettingsPanel.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/ui/BuildQueueUI.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/ui/VillageManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/ui/TemplateManager.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/utils/DataHelper.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/utils/BuildingCosts.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/utils/TimeUtils.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/utils/GameUtils.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/config/Settings.js
-// @require      https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/src/config/BuildingConfig.js
 // ==/UserScript==
 
 (function() {
     'use strict';
+    
+    // =============================================================================
+    // ⚙️ SETTINGS CLASS
+    // =============================================================================
+    
+    class Settings {
+        constructor() {
+            this.defaults = {
+                // Bot settings
+                autoBuildEnabled: false,
+                checkInterval: 30,
+                
+                // Building settings
+                maxQueueSize: 5, // Game maximum
+                costupSetup: [], // Array of building plans in order
+                
+                // UI settings
+                showSettingsPanel: true,
+                showBuildQueue: true,
+                showVillageManager: true,
+                
+                // Advanced settings
+                debugMode: false,
+                logLevel: 'info', // 'debug', 'info', 'warn', 'error'
+                
+                // Data settings
+                autoCollectData: true,
+                dataCollectionInterval: 300, // 5 minutes
+                maxStoredVillages: 50,
+                
+                // Villages refresh interval
+                villageRefreshInterval: 10,
+                
+                // Version and metadata
+                version: '1.0.0',
+                lastUpdated: Date.now()
+            };
+            
+            this.current = {};
+        }
+        
+        /**
+         * Load settings from localStorage
+         */
+        load() {
+            try {
+                const saved = localStorage.getItem('autobuilder_settings');
+                this.current = saved ? JSON.parse(saved) : {};
+                
+                // Merge with defaults for any missing settings
+                this.current = { ...this.defaults, ...this.current };
+                
+                console.log('⚙️ Settings loaded successfully');
+                
+            } catch (error) {
+                console.error('❌ Failed to load settings:', error);
+                this.current = { ...this.defaults };
+            }
+        }
+        
+        /**
+         * Save settings to localStorage
+         */
+        save() {
+            try {
+                this.current.lastUpdated = Date.now();
+                localStorage.setItem('autobuilder_settings', JSON.stringify(this.current));
+                console.log('💾 Settings saved successfully');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to save settings:', error);
+                return false;
+            }
+        }
+        
+        /**
+         * Get a setting value
+         * @param {string} key - Setting key
+         * @param {any} defaultValue - Default value if not found
+         * @returns {any} Setting value
+         */
+        get(key, defaultValue = null) {
+            const value = this.current[key];
+            return value !== undefined ? value : defaultValue;
+        }
+        
+        /**
+         * Set a setting value
+         * @param {string} key - Setting key
+         * @param {any} value - Setting value
+         */
+        set(key, value) {
+            this.current[key] = value;
+            this.save();
+        }
+        
+        /**
+         * Reset settings to defaults
+         */
+        reset() {
+            this.current = { ...this.defaults };
+            this.save();
+            console.log('🔄 Settings reset to defaults');
+        }
+        
+        /**
+         * Get all settings
+         * @returns {object} All current settings
+         */
+        getAll() {
+            return { ...this.current };
+        }
+        
+        /**
+         * Set multiple settings at once
+         * @param {object} settings - Settings object
+         */
+        setMultiple(settings) {
+            this.current = { ...this.current, ...settings };
+            this.save();
+        }
+    }
+    
+    // =============================================================================
+    // 🔧 COMPREHENSIVE INTEGRATION CLASS
+    // =============================================================================
+    
+    class ComprehensiveIntegration {
+        constructor() {
+            this.isInitialized = false;
+            this.comprehensiveCollector = null;
+            this.buildingQueueLogic = null;
+        }
+        
+        /**
+         * Initialize the comprehensive integration
+         */
+        async init() {
+            try {
+                console.log('🔧 Initializing Comprehensive Integration...');
+                
+                // Initialize comprehensive data collector
+                this.comprehensiveCollector = {
+                    collectVillageData: window.collectComprehensiveData || this.fallbackCollector,
+                    loadLatestData: window.loadComprehensiveData || this.fallbackLoader,
+                    cleanupData: window.cleanupComprehensiveData || this.fallbackCleanup
+                };
+                
+                // Initialize building queue logic
+                if (typeof window.TribalWarsBuildingQueueLogic === 'function') {
+                    this.buildingQueueLogic = new window.TribalWarsBuildingQueueLogic();
+                    console.log('✅ Building queue logic loaded');
+                } else {
+                    console.warn('⚠️ Building queue logic not available');
+                }
+                
+                this.isInitialized = true;
+                console.log('✅ Comprehensive Integration initialized successfully!');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize Comprehensive Integration:', error);
+            }
+        }
+        
+        /**
+         * Collect comprehensive data for a village
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Comprehensive village data
+         */
+        async collectVillageData(villageId) {
+            if (!this.isInitialized) {
+                await this.init();
+            }
+            
+            try {
+                console.log(`🔍 Collecting comprehensive data for village ${villageId}...`);
+                
+                if (typeof this.comprehensiveCollector.collectVillageData === 'function') {
+                    const data = await this.comprehensiveCollector.collectVillageData(villageId);
+                    if (data) {
+                        console.log('✅ Comprehensive data collected successfully!');
+                        return data;
+                    }
+                }
+                
+                // Fallback to basic collection
+                console.log('🔄 Using fallback data collector...');
+                return await this.fallbackCollector(villageId);
+                
+            } catch (error) {
+                console.error('❌ Error collecting comprehensive data:', error);
+                return null;
+            }
+        }
+        
+        /**
+         * Fallback data collector
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Basic village data
+         */
+        async fallbackCollector(villageId) {
+            console.log('🔄 Using fallback data collector...');
+            
+            try {
+                // Use the existing DataCollector if available
+                if (typeof DataCollector !== 'undefined' && DataCollector.collectAllData) {
+                    const data = await DataCollector.collectAllData();
+                    
+                    // Transform to comprehensive format
+                    return {
+                        villageId: villageId,
+                        villageName: game_data.village.name,
+                        coordinates: game_data.village.x + '|' + game_data.village.y,
+                        worldId: game_data.world,
+                        playerId: game_data.player.id,
+                        
+                        // Transform existing data
+                        troops: this.extractTroopsFromData(data),
+                        resources: this.extractResourcesFromData(data),
+                        buildings: this.extractBuildingsFromData(data),
+                        
+                        // Metadata
+                        extractedAt: new Date().toISOString(),
+                        serverTime: new Date().toISOString(),
+                        dataVersion: '1.0-fallback'
+                    };
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error('❌ Fallback collector failed:', error);
+                return null;
+            }
+        }
+        
+        /**
+         * Fallback data loader
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Loaded data
+         */
+        async fallbackLoader(villageId) {
+            return await this.fallbackCollector(villageId);
+        }
+        
+        /**
+         * Fallback cleanup
+         * @param {string} villageId - Village ID
+         * @returns {Promise<boolean>} Success status
+         */
+        async fallbackCleanup(villageId) {
+            return true;
+        }
+        
+        /**
+         * Extract troops from data
+         * @param {object} data - Data object
+         * @returns {object} Troops data
+         */
+        extractTroopsFromData(data) {
+            return data.troops || {};
+        }
+        
+        /**
+         * Extract resources from data
+         * @param {object} data - Data object
+         * @returns {object} Resources data
+         */
+        extractResourcesFromData(data) {
+            return data.resources || {};
+        }
+        
+        /**
+         * Extract buildings from data
+         * @param {object} data - Data object
+         * @returns {object} Buildings data
+         */
+        extractBuildingsFromData(data) {
+            return data.buildings || {};
+        }
+        
+        /**
+         * Get integration status
+         * @returns {object} Status information
+         */
+        getStatus() {
+            return {
+                isInitialized: this.isInitialized,
+                hasComprehensiveCollector: !!this.comprehensiveCollector,
+                hasBuildingQueueLogic: !!this.buildingQueueLogic
+            };
+        }
+    }
+    
+    // =============================================================================
+    // 🔧 ENHANCED DATA MANAGER CLASS
+    // =============================================================================
+    
+    class EnhancedDataManager {
+        constructor() {
+            this.comprehensiveCollector = null;
+            this.buildingQueueLogic = null;
+            this.lastCollection = 0;
+            this.collectionInterval = 30000; // 30 seconds minimum between collections
+        }
+
+        /**
+         * Initialize the enhanced data manager
+         */
+        init() {
+            // Initialize comprehensive data collector
+            this.comprehensiveCollector = {
+                collectVillageData: window.collectComprehensiveData || this.fallbackCollector,
+                loadLatestData: window.loadComprehensiveData || this.fallbackLoader,
+                cleanupData: window.cleanupComprehensiveData || this.fallbackCleanup
+            };
+
+            // Initialize building queue logic
+            this.buildingQueueLogic = new TribalWarsBuildingQueueLogic();
+            
+            console.log('🔧 Enhanced Data Manager initialized');
+        }
+
+        /**
+         * Collect comprehensive village data with security features
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Comprehensive village data
+         */
+        async collectComprehensiveData(villageId) {
+            try {
+                // Check if enough time has passed since last collection
+                const now = Date.now();
+                if (now - this.lastCollection < this.collectionInterval) {
+                    console.log('⏳ Waiting for collection interval...');
+                    return null;
+                }
+
+                console.log(`🔍 Collecting comprehensive data for village ${villageId}...`);
+                
+                // Use the comprehensive collector if available
+                if (typeof this.comprehensiveCollector.collectVillageData === 'function') {
+                    const data = await this.comprehensiveCollector.collectVillageData(villageId);
+                    this.lastCollection = now;
+                    return data;
+                } else {
+                    // Fallback to basic collection
+                    return await this.fallbackCollector(villageId);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error collecting comprehensive data:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Load latest comprehensive data
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Latest data
+         */
+        async loadLatestData(villageId) {
+            try {
+                if (typeof this.comprehensiveCollector.loadLatestData === 'function') {
+                    return await this.comprehensiveCollector.loadLatestData(villageId);
+                } else {
+                    return await this.fallbackLoader(villageId);
+                }
+            } catch (error) {
+                console.error('❌ Error loading latest data:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Add building to queue using enhanced logic
+         * @param {string} villageId - Village ID
+         * @param {string} buildingId - Building ID
+         * @returns {Promise<boolean>} Success status
+         */
+        async addBuildingToQueue(villageId, buildingId) {
+            try {
+                console.log(`🏗️ Adding ${buildingId} to queue in village ${villageId}...`);
+                
+                if (this.buildingQueueLogic) {
+                    return await this.buildingQueueLogic.addBuildingToQueue(villageId, buildingId);
+                } else {
+                    console.warn('⚠️ Building queue logic not available');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error adding building to queue:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Get current queue status
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Queue status
+         */
+        async getQueueStatus(villageId) {
+            try {
+                if (this.buildingQueueLogic) {
+                    return await this.buildingQueueLogic.getQueueStatus(villageId);
+                } else {
+                    return { count: 0, maxCapacity: 5, hasSpace: true, items: [] };
+                }
+            } catch (error) {
+                console.error('❌ Error getting queue status:', error);
+                return { count: 0, maxCapacity: 5, hasSpace: true, items: [] };
+            }
+        }
+
+        /**
+         * Check if queue has space
+         * @param {string} villageId - Village ID
+         * @returns {Promise<boolean>} Has space
+         */
+        async hasQueueSpace(villageId) {
+            try {
+                if (this.buildingQueueLogic) {
+                    return await this.buildingQueueLogic.hasQueueSpace(villageId);
+                } else {
+                    return true; // Assume has space if logic not available
+                }
+            } catch (error) {
+                console.error('❌ Error checking queue space:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Remove building from queue
+         * @param {string} villageId - Village ID
+         * @param {string} cancelId - Cancel ID
+         * @returns {Promise<boolean>} Success status
+         */
+        async removeBuildingFromQueue(villageId, cancelId) {
+            try {
+                if (this.buildingQueueLogic) {
+                    return await this.buildingQueueLogic.removeBuildingFromQueue(villageId, cancelId);
+                } else {
+                    console.warn('⚠️ Building queue logic not available');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error removing building from queue:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Fallback data collector (basic collection)
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Basic village data
+         */
+        async fallbackCollector(villageId) {
+            console.log('🔄 Using fallback data collector...');
+            
+            try {
+                // Use the existing DataCollector
+                const data = await DataCollector.collectAllData();
+                
+                // Transform to comprehensive format
+                return {
+                    villageId: villageId,
+                    villageName: game_data.village.name,
+                    coordinates: game_data.village.x + '|' + game_data.village.y,
+                    worldId: game_data.world,
+                    playerId: game_data.player.id,
+                    
+                    // Transform existing data
+                    troops: this.extractTroopsFromData(data),
+                    resources: this.extractResourcesFromData(data),
+                    buildings: this.extractBuildingsFromData(data),
+                    
+                    // Metadata
+                    extractedAt: new Date().toISOString(),
+                    serverTime: new Date().toISOString(),
+                    dataVersion: '1.0-fallback'
+                };
+                
+            } catch (error) {
+                console.error('❌ Fallback collector failed:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Fallback data loader
+         * @param {string} villageId - Village ID
+         * @returns {Promise<object>} Loaded data
+         */
+        async fallbackLoader(villageId) {
+            return await this.fallbackCollector(villageId);
+        }
+
+        /**
+         * Fallback cleanup
+         * @param {string} villageId - Village ID
+         * @returns {Promise<boolean>} Success status
+         */
+        async fallbackCleanup(villageId) {
+            return true;
+        }
+
+        /**
+         * Extract troops from data
+         * @param {object} data - Data object
+         * @returns {object} Troops data
+         */
+        extractTroopsFromData(data) {
+            return data.troops || {};
+        }
+
+        /**
+         * Extract resources from data
+         * @param {object} data - Data object
+         * @returns {object} Resources data
+         */
+        extractResourcesFromData(data) {
+            return data.resources || {};
+        }
+
+        /**
+         * Extract buildings from data
+         * @param {object} data - Data object
+         * @returns {object} Buildings data
+         */
+        extractBuildingsFromData(data) {
+            return data.buildings || {};
+        }
+
+        /**
+         * Get building ID mapping
+         * @param {string} buildingName - Building name
+         * @returns {string} Building ID
+         */
+        getBuildingId(buildingName) {
+            const buildingMap = {
+                'main': 'main',
+                'barracks': 'barracks',
+                'stable': 'stable',
+                'garage': 'garage',
+                'watchtower': 'watchtower',
+                'snob': 'snob',
+                'smith': 'smith',
+                'place': 'place',
+                'market': 'market',
+                'wood': 'wood',
+                'stone': 'stone',
+                'iron': 'iron',
+                'farm': 'farm',
+                'storage': 'storage',
+                'hide': 'hide',
+                'wall': 'wall'
+            };
+            
+            return buildingMap[buildingName] || buildingName;
+        }
+
+        /**
+         * Get status
+         * @returns {object} Status information
+         */
+        getStatus() {
+            return {
+                hasComprehensiveCollector: !!this.comprehensiveCollector,
+                hasBuildingQueueLogic: !!this.buildingQueueLogic,
+                lastCollection: this.lastCollection,
+                collectionInterval: this.collectionInterval
+            };
+        }
+    }
+    
+    // =============================================================================
+    // ⚙️ SETTINGS PANEL CLASS
+    // =============================================================================
+    
+    class SettingsPanel {
+        constructor() {
+            this.settings = null;
+            this.panel = null;
+            this.isVisible = false;
+        }
+        
+        /**
+         * Initialize the settings panel
+         */
+        init() {
+            try {
+                console.log('⚙️ Initializing Settings Panel...');
+                
+                if (!window.AutoBuilder) {
+                    console.error('❌ AutoBuilder not available for Settings Panel');
+                    return;
+                }
+                
+                this.settings = window.AutoBuilder.getSettings();
+                if (!this.settings) {
+                    console.error('❌ Settings not available for Settings Panel');
+                    return;
+                }
+                
+                this.createPanel();
+                console.log('⚙️ Settings Panel initialized successfully');
+            } catch (error) {
+                console.error('❌ Settings Panel initialization failed:', error);
+            }
+        }
+        
+        /**
+         * Create the settings panel
+         */
+        createPanel() {
+            // Remove existing panel
+            const existing = document.getElementById('autobuilder-settings');
+            if (existing) {
+                existing.remove();
+            }
+            
+            // Create new panel
+            this.panel = document.createElement('div');
+            this.panel.id = 'autobuilder-settings';
+            this.panel.className = 'autobuilder-panel';
+            this.panel.style.display = 'none';
+            
+            this.panel.innerHTML = `
+                <div class="autobuilder-header">
+                    <h3>🏗️ Auto Builder Settings</h3>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <button class="autobuilder-close" id="autobuilder-settings-close">×</button>
+                    </div>
+                </div>
+                <div class="autobuilder-content">
+                    <div class="autobuilder-section">
+                        <h4>🤖 Bot Settings</h4>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="autoBuildEnabled">
+                                Enable Auto Building
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label>Check Interval (seconds):</label>
+                            <input type="number" id="checkInterval" min="10" max="300">
+                        </div>
+                        <div class="setting-group">
+                            <label>Max Queue Size:</label>
+                            <input type="number" id="maxQueueSize" min="1" max="5" value="5" readonly>
+                            <small>(Game maximum)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="autobuilder-section">
+                        <h4>🔧 Actions</h4>
+                        <div class="setting-group">
+                            <button id="saveSettings" class="autobuilder-btn autobuilder-btn-primary">Save Settings</button>
+                            <button id="resetSettings" class="autobuilder-btn autobuilder-btn-secondary">Reset to Defaults</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(this.panel);
+            this.addStyles();
+            this.bindEvents();
+            
+            // Attach close event
+            const closeBtn = this.panel.querySelector('#autobuilder-settings-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.hide());
+            }
+        }
+        
+        /**
+         * Add styles for the panel
+         */
+        addStyles() {
+            const styles = `
+                .autobuilder-panel {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: #2c3e50;
+                    color: white;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    min-width: 400px;
+                    max-width: 600px;
+                    font-family: Arial, sans-serif;
+                }
+                
+                .autobuilder-header {
+                    background: #34495e;
+                    padding: 15px;
+                    border-radius: 8px 8px 0 0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .autobuilder-header h3 {
+                    margin: 0;
+                    font-size: 18px;
+                }
+                
+                .autobuilder-close {
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 20px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .autobuilder-close:hover {
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 4px;
+                }
+                
+                .autobuilder-content {
+                    padding: 20px;
+                }
+                
+                .autobuilder-section {
+                    margin-bottom: 20px;
+                }
+                
+                .autobuilder-section h4 {
+                    margin: 0 0 15px 0;
+                    color: #ecf0f1;
+                    font-size: 16px;
+                }
+                
+                .setting-group {
+                    margin-bottom: 15px;
+                }
+                
+                .setting-group label {
+                    display: block;
+                    margin-bottom: 5px;
+                    color: #bdc3c7;
+                }
+                
+                .setting-group input[type="number"] {
+                    width: 80px;
+                    padding: 5px;
+                    border: 1px solid #34495e;
+                    border-radius: 4px;
+                    background: #34495e;
+                    color: white;
+                }
+                
+                .setting-group small {
+                    color: #95a5a6;
+                    font-size: 12px;
+                }
+                
+                .autobuilder-btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    margin-right: 10px;
+                }
+                
+                .autobuilder-btn-primary {
+                    background: #3498db;
+                    color: white;
+                }
+                
+                .autobuilder-btn-primary:hover {
+                    background: #2980b9;
+                }
+                
+                .autobuilder-btn-secondary {
+                    background: #95a5a6;
+                    color: white;
+                }
+                
+                .autobuilder-btn-secondary:hover {
+                    background: #7f8c8d;
+                }
+            `;
+            
+            const styleElement = document.createElement('style');
+            styleElement.textContent = styles;
+            document.head.appendChild(styleElement);
+        }
+        
+        /**
+         * Bind events to the panel
+         */
+        bindEvents() {
+            // Save settings button
+            const saveBtn = this.panel.querySelector('#saveSettings');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => this.saveSettings());
+            }
+            
+            // Reset settings button
+            const resetBtn = this.panel.querySelector('#resetSettings');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => this.resetSettings());
+            }
+        }
+        
+        /**
+         * Save settings
+         */
+        saveSettings() {
+            try {
+                const autoBuildEnabled = this.panel.querySelector('#autoBuildEnabled').checked;
+                const checkInterval = parseInt(this.panel.querySelector('#checkInterval').value) || 30;
+                const maxQueueSize = parseInt(this.panel.querySelector('#maxQueueSize').value) || 5;
+                
+                this.settings.set('autoBuildEnabled', autoBuildEnabled);
+                this.settings.set('checkInterval', checkInterval);
+                this.settings.set('maxQueueSize', maxQueueSize);
+                
+                console.log('💾 Settings saved successfully');
+                
+                if (typeof UI !== 'undefined' && UI.SuccessMessage) {
+                    UI.SuccessMessage('✅ Settings saved successfully!');
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to save settings:', error);
+                if (typeof UI !== 'undefined' && UI.ErrorMessage) {
+                    UI.ErrorMessage('❌ Failed to save settings');
+                }
+            }
+        }
+        
+        /**
+         * Reset settings
+         */
+        resetSettings() {
+            try {
+                this.settings.reset();
+                this.loadCurrentSettings();
+                console.log('🔄 Settings reset to defaults');
+                
+                if (typeof UI !== 'undefined' && UI.SuccessMessage) {
+                    UI.SuccessMessage('🔄 Settings reset to defaults!');
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to reset settings:', error);
+                if (typeof UI !== 'undefined' && UI.ErrorMessage) {
+                    UI.ErrorMessage('❌ Failed to reset settings');
+                }
+            }
+        }
+        
+        /**
+         * Load current settings into the panel
+         */
+        loadCurrentSettings() {
+            try {
+                this.panel.querySelector('#autoBuildEnabled').checked = this.settings.get('autoBuildEnabled', false);
+                this.panel.querySelector('#checkInterval').value = this.settings.get('checkInterval', 30);
+                this.panel.querySelector('#maxQueueSize').value = this.settings.get('maxQueueSize', 5);
+            } catch (error) {
+                console.error('❌ Failed to load current settings:', error);
+            }
+        }
+        
+        /**
+         * Show the panel
+         */
+        show() {
+            if (this.panel) {
+                this.panel.style.display = 'block';
+                this.loadCurrentSettings();
+                this.isVisible = true;
+            }
+        }
+        
+        /**
+         * Hide the panel
+         */
+        hide() {
+            if (this.panel) {
+                this.panel.style.display = 'none';
+                this.isVisible = false;
+            }
+        }
+        
+        /**
+         * Toggle the panel
+         */
+        toggle() {
+            if (this.isVisible) {
+                this.hide();
+            } else {
+                this.show();
+            }
+        }
+    }
     
     // =============================================================================
     // 🔍 COMPREHENSIVE DATA COLLECTOR INTEGRATION
