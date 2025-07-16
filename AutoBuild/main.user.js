@@ -44,20 +44,63 @@
             return true;
         }
         
-        // Try to load from external source if not available
-        console.log('🔄 Loading comprehensive data collector...');
+        // Create a basic comprehensive data collector if not available externally
+        console.log('🔧 Creating basic comprehensive data collector...');
         
-        const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/TW_Utils_Templates/ComprehensiveVillageDataCollector.js';
-        script.onload = () => {
-            console.log('✅ Comprehensive data collector loaded externally');
+        window.collectComprehensiveData = async function(villageId) {
+            console.log(`🔍 Collecting comprehensive data for village ${villageId}...`);
+            
+            try {
+                // Use the existing DataCollector as fallback
+                const data = await DataCollector.collectAllData();
+                
+                if (data) {
+                    // Transform to comprehensive format
+                    const comprehensiveData = {
+                        villageId: villageId,
+                        villageName: game_data.village.name,
+                        coordinates: game_data.village.x + '|' + game_data.village.y,
+                        worldId: game_data.world,
+                        playerId: game_data.player.id,
+                        
+                        // Transform existing data
+                        troops: extractTroopsFromData(data),
+                        resources: extractResourcesFromData(data),
+                        buildings: extractBuildingsFromData(data),
+                        
+                        // Metadata
+                        extractedAt: new Date().toISOString(),
+                        serverTime: new Date().toISOString(),
+                        dataVersion: '1.0-fallback'
+                    };
+                    
+                    console.log('✅ Comprehensive data collected successfully!');
+                    return comprehensiveData;
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error('❌ Error collecting comprehensive data:', error);
+                return null;
+            }
         };
-        script.onerror = () => {
-            console.warn('⚠️ Could not load comprehensive data collector externally');
-        };
-        document.head.appendChild(script);
         
-        return false;
+        // Helper functions for data extraction
+        function extractTroopsFromData(data) {
+            return data.troops || {};
+        }
+        
+        function extractResourcesFromData(data) {
+            return data.resources || {};
+        }
+        
+        function extractBuildingsFromData(data) {
+            return data.buildings || {};
+        }
+        
+        console.log('✅ Basic comprehensive data collector created');
+        return true;
     }
     
     /**
@@ -70,20 +113,230 @@
             return true;
         }
         
-        // Try to load from external source if not available
-        console.log('🔄 Loading building queue logic...');
+        // Define the class directly if not available externally
+        console.log('🔧 Creating TribalWarsBuildingQueueLogic class...');
         
-        const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/nnoby95/UltimateTW/Autobuild-1.0/TW_Utils_Templates/TribalWars_Building_Queue_Logic.js';
-        script.onload = () => {
-            console.log('✅ Building queue logic loaded externally');
+        window.TribalWarsBuildingQueueLogic = class TribalWarsBuildingQueueLogic {
+            constructor() {
+                this.csrfToken = null;
+                this.lastTokenUpdate = 0;
+                this.tokenLifetime = 5 * 60 * 1000; // 5 minutes
+            }
+
+            /**
+             * Get CSRF token from the main page
+             * @param {string} villageId - Village ID
+             * @returns {Promise<string>} CSRF token
+             */
+            async getCSRFToken(villageId) {
+                try {
+                    console.log('🔑 Fetching CSRF token...');
+                    
+                    const response = await fetch(`game.php?village=${villageId}&screen=main`);
+                    const html = await response.text();
+                    
+                    // Extract CSRF token from HTML
+                    const csrfMatch = html.match(/game_data\.csrf\s*=\s*['"]([^'"]+)['"]/);
+                    const csrf = csrfMatch ? csrfMatch[1] : null;
+                    
+                    if (csrf) {
+                        this.csrfToken = csrf;
+                        this.lastTokenUpdate = Date.now();
+                        console.log('✅ CSRF Token obtained:', csrf.substring(0, 10) + '...');
+                        return csrf;
+                    } else {
+                        console.error('❌ CSRF token not found in HTML');
+                        return null;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Failed to get CSRF token:', error);
+                    return null;
+                }
+            }
+
+            /**
+             * Check if current token is still valid
+             * @returns {boolean} Token validity
+             */
+            isTokenValid() {
+                if (!this.csrfToken) return false;
+                
+                const timeSinceUpdate = Date.now() - this.lastTokenUpdate;
+                return timeSinceUpdate < this.tokenLifetime;
+            }
+
+            /**
+             * Get valid CSRF token (refresh if needed)
+             * @param {string} villageId - Village ID
+             * @returns {Promise<string>} Valid CSRF token
+             */
+            async getValidCSRFToken(villageId) {
+                if (this.isTokenValid()) {
+                    console.log('✅ Using cached CSRF token');
+                    return this.csrfToken;
+                }
+                
+                console.log('🔄 CSRF token expired, refreshing...');
+                return await this.getCSRFToken(villageId);
+            }
+
+            /**
+             * Add building to queue - MAIN LOGIC
+             * @param {string} villageId - Village ID
+             * @param {string} buildingId - Building ID (e.g., "main", "barracks", "stable")
+             * @returns {Promise<boolean>} Success status
+             */
+            async addBuildingToQueue(villageId, buildingId) {
+                try {
+                    console.log(`🏗️ Adding ${buildingId} to queue in village ${villageId}...`);
+                    
+                    // Step 1: Get valid CSRF token
+                    const csrf = await this.getValidCSRFToken(villageId);
+                    if (!csrf) {
+                        console.error('❌ No valid CSRF token available');
+                        return false;
+                    }
+                    
+                    // Step 2: Build the request URL (exact format from TribalWars)
+                    const url = `game.php?village=${villageId}&screen=main&action=upgrade_building&id=${buildingId}&type=main&h=${csrf}`;
+                    
+                    console.log(`🌐 Making building request: ${url}`);
+                    
+                    // Step 3: Make the request
+                    const response = await fetch(url);
+                    const result = await response.text();
+                    
+                    // Step 4: Check if successful
+                    const success = !result.includes('error') && !result.includes('Error');
+                    
+                    if (success) {
+                        console.log(`✅ Successfully added ${buildingId} to queue!`);
+                    } else {
+                        console.log(`❌ Failed to add ${buildingId} to queue`);
+                        console.log('Response preview:', result.substring(0, 200));
+                    }
+                    
+                    return success;
+                    
+                } catch (error) {
+                    console.error('❌ Error adding building to queue:', error);
+                    return false;
+                }
+            }
+
+            /**
+             * Remove building from active queue
+             * @param {string} villageId - Village ID
+             * @param {string} cancelId - Cancel ID from queue
+             * @returns {Promise<boolean>} Success status
+             */
+            async removeBuildingFromQueue(villageId, cancelId) {
+                try {
+                    console.log(`🗑️ Removing building ${cancelId} from queue...`);
+                    
+                    // Get valid CSRF token
+                    const csrf = await this.getValidCSRFToken(villageId);
+                    if (!csrf) {
+                        console.error('❌ No valid CSRF token available');
+                        return false;
+                    }
+                    
+                    // Build the request (exact format from TribalWars)
+                    const url = `game.php?village=${villageId}&screen=main&ajaxaction=cancel_order&type=main`;
+                    const body = `id=${cancelId}&destroy=0&h=${csrf}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'Tribalwars-Ajax': '1',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: body
+                    });
+                    
+                    const success = response.ok;
+                    
+                    if (success) {
+                        console.log(`✅ Successfully removed building from queue!`);
+                    } else {
+                        console.log(`❌ Failed to remove building from queue`);
+                    }
+                    
+                    return success;
+                    
+                } catch (error) {
+                    console.error('❌ Error removing building from queue:', error);
+                    return false;
+                }
+            }
+
+            /**
+             * Get current building queue status
+             * @param {string} villageId - Village ID
+             * @returns {Promise<Object>} Queue status
+             */
+            async getQueueStatus(villageId) {
+                try {
+                    console.log('📋 Getting current building queue status...');
+                    
+                    const response = await fetch(`game.php?village=${villageId}&screen=main`);
+                    const html = await response.text();
+                    
+                    // Parse queue from HTML
+                    const queueItems = [];
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Find queue elements (adjust selectors based on TribalWars HTML structure)
+                    const queueElements = doc.querySelectorAll('.queue-item, .building-queue-item, [class*="queue"]');
+                    
+                    queueElements.forEach((element, index) => {
+                        const buildingName = element.querySelector('.building-name, [class*="building"]')?.textContent || 'Unknown';
+                        const timeLeft = element.querySelector('.time-left, [class*="time"]')?.textContent || '';
+                        
+                        queueItems.push({
+                            index: index,
+                            building: buildingName,
+                            timeLeft: timeLeft
+                        });
+                    });
+                    
+                    const queueStatus = {
+                        count: queueItems.length,
+                        maxCapacity: 5, // TribalWars allows max 5 buildings in queue
+                        hasSpace: queueItems.length < 5,
+                        items: queueItems
+                    };
+                    
+                    console.log(`📊 Queue status: ${queueItems.length}/5 items`);
+                    return queueStatus;
+                    
+                } catch (error) {
+                    console.error('❌ Error getting queue status:', error);
+                    return { count: 0, maxCapacity: 5, hasSpace: true, items: [] };
+                }
+            }
+
+            /**
+             * Check if queue has space
+             * @param {string} villageId - Village ID
+             * @returns {Promise<boolean>} Has space
+             */
+            async hasQueueSpace(villageId) {
+                try {
+                    const status = await this.getQueueStatus(villageId);
+                    return status.hasSpace;
+                } catch (error) {
+                    console.error('❌ Error checking queue space:', error);
+                    return false;
+                }
+            }
         };
-        script.onerror = () => {
-            console.warn('⚠️ Could not load building queue logic externally');
-        };
-        document.head.appendChild(script);
         
-        return false;
+        console.log('✅ TribalWarsBuildingQueueLogic class created');
+        return true;
     }
     
     // =============================================================================
@@ -547,7 +800,7 @@
                         
                         // Initialize settings
                         this.settings = new Settings();
-                        this.settings.init();
+                        this.settings.load();
                         
                         // Initialize comprehensive integration
                         this.comprehensiveIntegration = new ComprehensiveIntegration();
