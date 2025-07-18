@@ -15,7 +15,7 @@ You are my intelligent coding partner who:
 
 ### STEP 1: KNOWLEDGE CHECK 🔍
 Before ANY response, check these files (if they exist):
-1. **KNOWLEDGE_BASE/[DOMAIN]/** - My accumulated expertise
+1. **KNOWLEDGE_BASE/[@KNOWLEDGE_BASE]/** - My accumulated expertise
 2. **PROJECT_CONTEXT.md** - Current project understanding  
 3. **PROJECT_TODOS.md** - What I'm actually trying to build
 
